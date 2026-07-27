@@ -4,11 +4,23 @@ Monitor de sistema en tiempo real para la barra de menús de macOS (Apple Silico
 
 ## Instalación
 
-1. Descarga el zip del [último release](https://github.com/btoaldas/BtoStats/releases).
-2. Descomprime y mueve `BtoStats.app` a **Aplicaciones**.
-3. Primer arranque: clic derecho sobre la app → **Abrir** (firma ad hoc).
-4. **macOS 26**: si el ícono no aparece en la barra, autorízalo en
-   *Ajustes del Sistema → Barra de menús*.
+```bash
+./scripts/install.sh
+```
+
+Instala BtoStats como agente de usuario: arranca solo al iniciar sesión y se
+reinicia si se cierra. Para desinstalar:
+
+```bash
+launchctl unload ~/Library/LaunchAgents/ec.bto.btostats.plist
+rm ~/Library/LaunchAgents/ec.bto.btostats.plist
+```
+
+> **Por qué agente y no `.app`**: en macOS 26 el ícono de un bundle `.app`
+> puede quedar posicionado fuera de la pantalla en la barra de menús
+> (verificado: el mismo binario, ejecutado suelto, aparece correctamente;
+> dentro del bundle, macOS le asigna un marco fuera del área visible).
+> El ejecutable directo no sufre ese problema.
 
 ## El widget de la barra de menús
 

@@ -21,6 +21,9 @@ final class StatusItemController: NSObject {
         self.store = store
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
+        // Nombre estable: sin él macOS reasigna la posición en cada arranque y
+        // puede dejar el ítem fuera de la pantalla (barra llena / notch).
+
         statusItem.button?.target = self
         statusItem.button?.action = #selector(statusItemClicked)
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])

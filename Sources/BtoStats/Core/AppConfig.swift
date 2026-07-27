@@ -182,6 +182,19 @@ final class AppConfig {
         set { defaults.set(newValue, forKey: "dynamicColors") }
     }
 
+    /// El aviso de "ícono fuera de la barra" solo se muestra una vez.
+    var hiddenIconWarningShown: Bool {
+        get { defaults.bool(forKey: "hiddenIconWarningShown") }
+        set { defaults.set(newValue, forKey: "hiddenIconWarningShown") }
+    }
+
+    /// Mostrar también el ícono en el Dock (OFF por defecto: es una app de
+    /// barra de menús). Útil para saber de un vistazo que está abierta.
+    var showInDock: Bool {
+        get { defaults.bool(forKey: "showInDock") }
+        set { defaults.set(newValue, forKey: "showInDock") }
+    }
+
     /// Auto-limitación de recursos (ON por defecto: es protección, no feature).
     /// Baja la cadencia con batería baja o memoria crítica.
     var resourceGuardEnabled: Bool {

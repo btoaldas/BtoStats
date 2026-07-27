@@ -291,5 +291,7 @@ if CommandLine.arguments.contains("--system") {
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate
-app.setActivationPolicy(.accessory)
+// .regular muestra el ícono en el Dock (útil para ver que está abierta);
+// .accessory es el modo normal de app de barra de menús.
+app.setActivationPolicy(AppConfig.shared.showInDock ? .regular : .accessory)
 app.run()

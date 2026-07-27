@@ -36,6 +36,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                queue: .main) { [weak self] _ in
             self?.startSampling()
             self?.statusController?.render()
+            // ícono del Dock en vivo (sin reiniciar la app)
+            NSApp.setActivationPolicy(AppConfig.shared.showInDock ? .regular : .accessory)
         }
         startSampling()
         alertMonitor.requestAuthorizationIfNeeded()

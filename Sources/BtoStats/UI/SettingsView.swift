@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var panelPinned: Bool = AppConfig.shared.panelPinned
     @State private var desktopWidgetOn: Bool = AppConfig.shared.desktopWidgetEnabled
     @State private var desktopWidgetSize: AppConfig.DesktopWidgetSize = AppConfig.shared.desktopWidgetSize
+    @State private var showInDock: Bool = AppConfig.shared.showInDock
     @State private var launchAtLogin: Bool = SMAppService.mainApp.status == .enabled
     @State private var helperInstalled: Bool = HelperClient.shared.isInstalled
     @State private var helperError: String?
@@ -109,6 +110,13 @@ struct SettingsView: View {
                         AppConfig.shared.desktopWidgetSize = v; AppConfig.shared.notifyChanged()
                     }
                 }
+
+                Toggle("Mostrar el ícono en el Dock", isOn: $showInDock)
+                    .onChange(of: showInDock) { _, v in
+                        AppConfig.shared.showInDock = v; AppConfig.shared.notifyChanged()
+                    }
+                Text("Útil para saber que la app está abierta. Normalmente vive solo en la barra de menús.")
+                    .font(.caption).foregroundStyle(.secondary)
 
                 Toggle("Abrir al iniciar sesión", isOn: $launchAtLogin)
                     .disabled(!isBundled)

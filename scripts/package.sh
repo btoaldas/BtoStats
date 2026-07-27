@@ -33,7 +33,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
-    <key>LSUIElement</key><true/>
+    <!-- Sin esto macOS corre la app en "modo compatibilidad de área segura":
+         le presenta la pantalla SIN la zona del notch, la barra le parece de
+         22 pt y el status item termina desplazado fuera de la pantalla
+         (verificado: bundle sin la clave -> X=1314 invisible; con ella y en
+         binario suelto -> X=922 visible). -->
+    <key>NSPrefersDisplaySafeAreaCompatibilityMode</key><false/>
+    <key>NSHighResolutionCapable</key><true/>
     <key>NSHumanReadableCopyright</key><string>© 2026 btoaldas — PolyForm Strict 1.0.0</string>
 </dict>
 </plist>
