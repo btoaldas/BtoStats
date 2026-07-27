@@ -86,6 +86,13 @@ if runningCopies.count > 1 {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--bluetooth") {
+    let devices = BluetoothReader().read()
+    if devices.isEmpty { print("sin dispositivos BT con batería") }
+    for d in devices { print("\(d.name): \(d.batteryPercent)%") }
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--diskio") {
     let r = DiskIOReader()
     _ = r.read() // baseline

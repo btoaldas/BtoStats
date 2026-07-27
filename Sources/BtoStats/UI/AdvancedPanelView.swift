@@ -39,6 +39,13 @@ struct AdvancedPanelView: View {
                         }
                     }
                 }
+                if !model.bluetooth.isEmpty {
+                    section("Bluetooth") {
+                        ForEach(model.bluetooth, id: \.name) { d in
+                            row(d.name, "\(d.pct)%")
+                        }
+                    }
+                }
                 section("Disco I/O (en vivo)") {
                     row("Lectura", StatusItemController.rate(model.diskReadBps) + "/s")
                     row("Escritura", StatusItemController.rate(model.diskWriteBps) + "/s")

@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let wifiReader = WiFiReader()
     private let batteryReader = BatteryReader()
     private let diskIOReader = DiskIOReader()
+    private let bluetoothReader = BluetoothReader()
     private var lastSystem: SystemReader.Snapshot?
     private var lastWiFi: WiFiReader.Snapshot?
     private var lastBattery: BatteryReader.Snapshot?
@@ -97,8 +98,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             slow: { [weak self] in
                 guard let self else { return }
                 let disk = self.diskReader.read()
+                let bt = self.bluetoothReader.read()
                 DispatchQueue.main.async {
                     self.store.updateDisk(disk)
+                    self.store.updateBluetooth(bt)
                     self.statusController?.render()
                 }
             }

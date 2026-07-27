@@ -15,6 +15,7 @@ final class MetricStore {
     private(set) var wifi: WiFiReader.Snapshot?
     private(set) var battery: BatteryReader.Snapshot?
     private(set) var diskIO: DiskIOReader.Snapshot?
+    private(set) var bluetooth: [BluetoothReader.Device] = []
 
     private(set) var cpuHistory = MetricSeries()
     private(set) var memoryHistory = MetricSeries()
@@ -68,4 +69,5 @@ final class MetricStore {
     func updateWiFi(_ wifi: WiFiReader.Snapshot?) { self.wifi = wifi }
     func updateBattery(_ battery: BatteryReader.Snapshot?) { self.battery = battery }
     func updateDiskIO(_ io: DiskIOReader.Snapshot?) { if let io { self.diskIO = io } }
+    func updateBluetooth(_ devices: [BluetoothReader.Device]) { self.bluetooth = devices }
 }

@@ -59,6 +59,7 @@ final class PanelModel: ObservableObject {
     @Published var batteryTemp: Double? = nil
     @Published var diskReadBps: Double = 0
     @Published var diskWriteBps: Double = 0
+    @Published var bluetooth: [(name: String, pct: Int)] = []
 
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
@@ -94,6 +95,7 @@ final class PanelModel: ObservableObject {
             diskAvailable = disk.availableBytes
             diskTotal = disk.totalBytes
         }
+        bluetooth = store.bluetooth.map { (name: $0.name, pct: $0.batteryPercent) }
         if let io = store.diskIO {
             diskReadBps = io.readBps
             diskWriteBps = io.writeBps
