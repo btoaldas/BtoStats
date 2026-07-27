@@ -4,19 +4,56 @@ import Charts
 /// Panel grande: KPIs, gráficos en vivo (histórico de 5 min) y top procesos.
 struct PanelView: View {
     @ObservedObject var model: PanelModel
+    @State private var scale: Double = AppConfig.shared.panelScale
+
+    private var processFont: CGFloat { 11 * scale }
+    private var kpiFont: CGFloat { 17 * scale }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 14 * scale) {
+            scaleBar
             kpiRow
             HStack(spacing: 14) {
                 usageChart
                 networkChart
             }
-            .frame(height: 150)
+            .frame(height: 150 * scale)
             topsRow
         }
         .padding(16)
-        .frame(width: 780)
+        .frame(width: 820 * scale)
+    }
+
+    /// Tamaño ajustable desde el propio panel (se guarda en preferencias).
+    private var scaleBar: some View {
+        HStack {
+            Spacer()
+            Button { changeScale(-0.1) } label: { Image(systemName: "minus.magnifyingglass") }
+                .buttonStyle(.borderless)
+                .disabled(scale <= 0.81)
+            Text("\(Int((scale * 100).rounded())) %")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: 44)
+            Button { changeScale(0.1) } label: { Image(systemName: "plus.magnifyingglass") }
+                .buttonStyle(.borderless)
+                .disabled(scale >= 1.59)
+        }
+    }
+
+    private func changeScale(_ delta: Double) {
+        scale = min(max(scale + delta, 0.8), 1.6)
+        AppConfig.shared.panelScale = scale
+    }
+
+    /// Nombres tipo "com.apple.Virtualization.VirtualMachine" → "VirtualMachine".
+    private func displayName(_ raw: String) -> String {
+        guard raw.count > 18, raw.contains(".") else { return raw }
+        if let last = raw.split(separator: ".").last, last.count >= 3 {
+            return String(last)
+        }
+        return raw
     }
 
     // MARK: - KPIs
@@ -33,8 +70,8 @@ struct PanelView: View {
                 detail: fanDetail)
             kpi("Red", "↑ \(StatusItemController.rate(model.uploadBps))/s",
                 detail: "↓ \(StatusItemController.rate(model.downloadBps))/s")
-            kpi("Disco", StatusItemController.bytes(model.diskAvailable),
-                detail: "de \(StatusItemController.bytes(model.diskTotal))")
+            kpi("Disco libre", StatusItemController.bytes(model.diskAvailable),
+                detail: "total \(StatusItemController.bytes(model.diskTotal))")
         }
     }
 
@@ -46,7 +83,7 @@ struct PanelView: View {
     private func kpi(_ title: String, _ value: String, detail: String) -> some View {
         VStack(spacing: 2) {
             Text(title).font(.caption2).foregroundStyle(.secondary)
-            Text(value).font(.system(size: 17, weight: .semibold, design: .rounded))
+            Text(value).font(.system(size: kpiFont, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .lineLimit(1)
             Text(detail.isEmpty ? " " : detail)
@@ -162,13 +199,14 @@ struct PanelView: View {
             }
             ForEach(model.topGPU, id: \.name) { entry in
                 HStack {
-                    Text(entry.name)
-                        .font(.system(size: 11))
+                    Text(displayName(entry.name))
+                        .font(.system(size: processFont))
                         .lineLimit(1)
-                        .truncationMode(.middle)
+                        .truncationMode(.tail)
+                        .help(entry.name)
                     Spacer(minLength: 8)
                     Text(String(format: "%.0f%%", entry.percent))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: processFont, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
@@ -190,13 +228,14 @@ struct PanelView: View {
             ForEach(samples) { sample in
                 HStack(spacing: 4) {
                     killButton(for: sample)
-                    Text(sample.name)
-                        .font(.system(size: 11))
+                    Text(displayName(sample.name))
+                        .font(.system(size: processFont))
                         .lineLimit(1)
-                        .truncationMode(.middle)
+                        .truncationMode(.tail)
+                        .help(sample.name)
                     Spacer(minLength: 8)
                     Text(value(sample))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: processFont, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }

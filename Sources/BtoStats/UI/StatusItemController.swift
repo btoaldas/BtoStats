@@ -69,7 +69,7 @@ final class StatusItemController: NSObject {
         statusItem.button?.attributedTitle = grid.title
         // el botón centra el título y aplica ~8 pt de inset por lado: sin margen
         // suficiente el contenido se recorta por los bordes
-        statusItem.length = grid.width + 16
+        statusItem.length = grid.width + 14
     }
 
     /// Clic izquierdo: panel grande. Clic derecho: menú de detalle.
@@ -216,8 +216,9 @@ final class StatusItemController: NSObject {
     }
 
     /// Cuadrícula de N columnas × `rows` filas para el status item.
-    /// Alineación real por tab stops: label pegado al borde izquierdo de su
-    /// columna, valor pegado al derecho — columnas cuadradas a ambas esquinas.
+    /// Alineación por relleno monoespaciado exacto por columna (los tab stops
+    /// se desfasaban cuando un valor rozaba su posición): label a la izquierda,
+    /// valor a la derecha, 1 espacio entre ambos, 2 entre columnas.
     static func grid(columns: [[(String, String)?]], rows: Int) -> (title: NSAttributedString, width: CGFloat) {
         let lineHeight: CGFloat = rows >= 4 ? 5.2 : (rows == 3 ? 6.6 : 9)
         let labelSize: CGFloat = rows >= 4 ? 4.5 : (rows == 3 ? 5 : 6.5)
@@ -225,62 +226,54 @@ final class StatusItemController: NSObject {
         let labelFont = NSFont.monospacedSystemFont(ofSize: labelSize, weight: .semibold)
         let valueFont = NSFont.monospacedSystemFont(ofSize: valueSize, weight: .medium)
         let baseline: CGFloat = rows >= 4 ? -1.5 : (rows == 3 ? -2 : -3)
-        let compact = rows >= 3
 
-        let labelAttributes: [NSAttributedString.Key: Any] = [.font: labelFont]
-        let valueAttributes: [NSAttributedString.Key: Any] = [.font: valueFont]
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.minimumLineHeight = lineHeight
+        paragraph.maximumLineHeight = lineHeight
+        paragraph.lineBreakMode = .byClipping
 
-        // Ancho real de cada columna: label más ancho + valor más ancho.
-        let widths: [(label: CGFloat, value: CGFloat)] = columns.map { column in
-            var label: CGFloat = 0, value: CGFloat = 0
+        func attributed(_ text: String, _ font: NSFont) -> NSAttributedString {
+            NSAttributedString(string: text, attributes: [
+                .font: font,
+                .foregroundColor: NSColor.labelColor,
+                .paragraphStyle: paragraph,
+                .baselineOffset: baseline,
+            ])
+        }
+
+        // Ancho de cada columna en caracteres (fuentes mono → padding exacto).
+        let metrics: [(label: Int, value: Int)] = columns.map { column in
+            var label = 0, value = 0
             for cell in column.compactMap({ $0 }) {
-                label = max(label, (cell.0 as NSString).size(withAttributes: labelAttributes).width)
-                value = max(value, (cell.1 as NSString).size(withAttributes: valueAttributes).width)
+                label = max(label, cell.0.count)
+                value = max(value, cell.1.count)
             }
             return (label, value)
         }
 
-        let columnGap: CGFloat = compact ? 5 : 6
-        let innerGap: CGFloat = compact ? 2.5 : 3
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.minimumLineHeight = lineHeight
-        paragraph.maximumLineHeight = lineHeight
-        paragraph.defaultTabInterval = 0
-        var tabStops: [NSTextTab] = []
-        var cursor: CGFloat = 0
-        for width in widths {
-            tabStops.append(NSTextTab(textAlignment: .left, location: cursor))
-            cursor += width.label + innerGap + width.value
-            tabStops.append(NSTextTab(textAlignment: .right, location: cursor))
-            cursor += columnGap
+        func pad(_ text: String, to width: Int, alignRight: Bool) -> String {
+            let fill = String(repeating: " ", count: max(width - text.count, 0))
+            return alignRight ? fill + text : text + fill
         }
-        paragraph.tabStops = tabStops
-        paragraph.lineBreakMode = .byClipping
-        let totalWidth = max(cursor - columnGap, 0)
 
         let result = NSMutableAttributedString()
+        var maxWidth: CGFloat = 0
         for row in 0..<rows {
             let line = NSMutableAttributedString()
-            for column in columns {
+            for (index, column) in columns.enumerated() {
                 let cell = row < column.count ? column[row] : nil
-                line.append(NSAttributedString(string: "\t" + (cell?.0 ?? ""), attributes: [
-                    .font: labelFont,
-                    .foregroundColor: NSColor.labelColor,
-                    .paragraphStyle: paragraph,
-                    .baselineOffset: baseline,
-                ]))
-                line.append(NSAttributedString(string: "\t" + (cell?.1 ?? ""), attributes: [
-                    .font: valueFont,
-                    .foregroundColor: NSColor.labelColor,
-                    .paragraphStyle: paragraph,
-                    .baselineOffset: baseline,
-                ]))
+                if index > 0 {
+                    line.append(attributed("  ", valueFont))
+                }
+                line.append(attributed(pad(cell?.0 ?? "", to: metrics[index].label, alignRight: false) + " ", labelFont))
+                line.append(attributed(pad(cell?.1 ?? "", to: metrics[index].value, alignRight: true), valueFont))
             }
+            maxWidth = max(maxWidth, line.size().width)
             if row < rows - 1 {
-                line.append(NSAttributedString(string: "\n", attributes: [.paragraphStyle: paragraph]))
+                line.append(attributed("\n", valueFont))
             }
             result.append(line)
         }
-        return (result, totalWidth)
+        return (result, ceil(maxWidth))
     }
 }

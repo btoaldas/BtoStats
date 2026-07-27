@@ -26,8 +26,8 @@ enum MetricID: String, CaseIterable, Identifiable {
         case .gpu: return "GPU"
         case .temperature: return "TMP"
         case .network: return "↑↓"
-        case .diskFree: return "D"
-        case .diskTotal: return " "
+        case .diskFree: return "L"
+        case .diskTotal: return "T"
         }
     }
 }
@@ -45,6 +45,7 @@ final class AppConfig {
         static let disabledMetrics = "disabledMetrics"
         static let fastInterval = "fastInterval"
         static let gridRows = "gridRows"
+        static let panelScale = "panelScale"
     }
 
     /// Migración de configs previas: networkUp/networkDown eran métricas sueltas
@@ -94,6 +95,15 @@ final class AppConfig {
             return value == 0 ? 2 : min(max(value, 2), 4)
         }
         set { defaults.set(min(max(newValue, 2), 4), forKey: Key.gridRows) }
+    }
+
+    /// Escala del panel grande (0.8–1.6; botones −/+ en el propio panel).
+    var panelScale: Double {
+        get {
+            let value = defaults.double(forKey: Key.panelScale)
+            return value == 0 ? 1.0 : min(max(value, 0.8), 1.6)
+        }
+        set { defaults.set(min(max(newValue, 0.8), 1.6), forKey: Key.panelScale) }
     }
 
     func setEnabled(_ metric: MetricID, _ enabled: Bool) {
