@@ -5,10 +5,14 @@ import SwiftUI
 /// las ventanas normales, visible en todos los espacios, arrastrable, con
 /// posición persistente. (WidgetKit no permite refresh de ~1 s — por eso es
 /// una ventana propia; ver docs/REQUERIMIENTOS.md R7.)
-/// NSWindow borderless no acepta ser key por defecto y sin eso el arrastre
-/// por el fondo no funciona.
+/// Arrastre sin volverse key: hacerse key activaba la app y podía disparar
+/// otras ventanas al agarrar el widget. performDrag mueve la ventana con el
+/// mouse sin tocar el foco de nadie.
 private final class DraggableWindow: NSWindow {
-    override var canBecomeKey: Bool { true }
+    override var canBecomeKey: Bool { false }
+    override func mouseDown(with event: NSEvent) {
+        performDrag(with: event)
+    }
 }
 
 final class DesktopWidgetController: NSObject, NSWindowDelegate {

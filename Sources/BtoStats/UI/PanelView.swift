@@ -22,7 +22,7 @@ struct PanelView: View {
             .frame(height: 150 * scale)
             topsRow
         }
-        .padding(.top, 8)
+        .padding(.top, 10)
         .padding([.horizontal, .bottom], 16)
         .frame(width: 820 * scale)
     }

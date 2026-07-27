@@ -13,6 +13,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     private let processQueue = DispatchQueue(label: "btostats.processes", qos: .utility)
 
     var isVisible: Bool { panel?.isVisible ?? false }
+    private var lastAutoClose = Date.distantPast
 
     /// Con pin activo el panel no se cierra al perder el foco (usado por el
     /// modo de prueba BTOSTATS_TEST_PANEL; luego será el botón de anclar).
@@ -21,7 +22,9 @@ final class PanelController: NSObject, NSWindowDelegate {
     func toggle(relativeTo button: NSStatusBarButton?, store: MetricStore) {
         if isVisible {
             close()
-        } else {
+        } else if Date().timeIntervalSince(lastAutoClose) > 0.4 {
+            // si el clic en el status item acaba de cerrar el panel por pérdida
+            // de foco, no reabrirlo en el mismo clic (parecía errático)
             show(relativeTo: button, store: store)
         }
     }
@@ -35,9 +38,9 @@ final class PanelController: NSObject, NSWindowDelegate {
         if panel == nil {
             let hosting = NSHostingController(rootView: PanelView(model: model))
             let newPanel = NSPanel(contentViewController: hosting)
-            newPanel.styleMask = [.titled, .nonactivatingPanel, .fullSizeContentView]
-            newPanel.titleVisibility = .hidden
-            newPanel.titlebarAppearsTransparent = true
+            newPanel.styleMask = [.titled, .closable, .nonactivatingPanel]
+            newPanel.title = "BtoStats — monitor en vivo"
+            newPanel.titleVisibility = .visible
             newPanel.isMovableByWindowBackground = true
             newPanel.level = .floating
             newPanel.becomesKeyOnlyIfNeeded = true
@@ -107,6 +110,9 @@ final class PanelController: NSObject, NSWindowDelegate {
     // MARK: - NSWindowDelegate
 
     func windowDidResignKey(_ notification: Notification) {
-        if !pinned { close() }
+        if !pinned {
+            lastAutoClose = Date()
+            close()
+        }
     }
 }
