@@ -75,6 +75,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     // MARK: - Top procesos (5 s, solo panel visible)
 
     private func startProcessSampling() {
+        processQueue.async { [weak self] in self?.processReader.resetNetworkBaseline() }
         sampleProcesses() // primera muestra inmediata (baseline de red)
         let timer = Timer(timeInterval: 5.0, repeats: true) { [weak self] _ in
             self?.sampleProcesses()
@@ -96,9 +97,9 @@ final class PanelController: NSObject, NSWindowDelegate {
                 self.model.topCPU = snapshot.topCPU
                 self.model.totalCPUPercent = snapshot.totalCPUPercent
                 self.model.topRAM = snapshot.topRAM
-                if !snapshot.topNetwork.isEmpty {
-                    self.model.topNetwork = snapshot.topNetwork
-                }
+                // publicar siempre: congelar la última lista no vacía mostraría
+                // tráfico viejo como actual
+                self.model.topNetwork = snapshot.topNetwork
             }
         }
     }

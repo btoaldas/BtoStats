@@ -24,8 +24,25 @@ enum ProcessKiller {
         ownerUID(of: pid) == getuid()
     }
 
-    static func terminate(pid: Int32, force: Bool) -> Outcome {
+    /// Nombre actual del proceso (para re-verificar identidad antes de matar).
+    static func currentName(of pid: Int32) -> String? {
+        var buffer = [CChar](repeating: 0, count: 1024)
+        guard proc_name(pid, &buffer, UInt32(buffer.count)) > 0 else { return nil }
+        return String(cString: buffer)
+    }
+
+    static func terminate(pid: Int32, force: Bool, expectedName: String? = nil) -> Outcome {
+        guard pid > 0 else { return .failed("pid inválido") }
         guard canTerminate(pid: pid) else { return .notPermitted }
+
+        // El diálogo de confirmación puede quedar abierto un tiempo ilimitado:
+        // si el pid fue reutilizado por OTRO proceso, abortar en vez de matarlo.
+        if let expectedName {
+            guard let actual = currentName(of: pid),
+                  actual.hasPrefix(expectedName) || expectedName.hasPrefix(actual) else {
+                return .failed("el proceso ya no existe (el PID ahora es de otro programa)")
+            }
+        }
 
         if let app = NSRunningApplication(processIdentifier: pid) {
             let sent = force ? app.forceTerminate() : app.terminate()

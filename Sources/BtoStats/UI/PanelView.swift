@@ -99,7 +99,7 @@ struct PanelView: View {
     // MARK: - Gráficos
 
     private var usageChart: some View {
-        chartCard("Uso % (5 min)") {
+        chartCard("Uso % — histórico") {
             Chart {
                 ForEach(Array(model.cpuHistory.enumerated()), id: \.offset) { index, value in
                     LineMark(x: .value("t", index), y: .value("%", value * 100),
@@ -125,7 +125,7 @@ struct PanelView: View {
     }
 
     private var networkChart: some View {
-        chartCard("Red B/s (5 min)") {
+        chartCard("Red B/s — histórico") {
             Chart {
                 ForEach(Array(model.downloadHistory.enumerated()), id: \.offset) { index, value in
                     LineMark(x: .value("t", index), y: .value("B/s", value),
@@ -276,7 +276,8 @@ struct PanelView: View {
         let choice = alert.runModal()
         guard choice != .alertThirdButtonReturn else { return }
         let outcome = ProcessKiller.terminate(pid: sample.pid,
-                                              force: choice == .alertSecondButtonReturn)
+                                              force: choice == .alertSecondButtonReturn,
+                                              expectedName: sample.name)
         if case .failed(let reason) = outcome {
             let error = NSAlert()
             error.messageText = "No se pudo cerrar \(sample.name)"

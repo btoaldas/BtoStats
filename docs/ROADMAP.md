@@ -55,11 +55,23 @@ reproducible antes de darse por cerrada.
 - [x] Salud de RAM honesta: presión real del kernel (verde/amarillo/rojo) con
       consejo claro; sin "liberadores" mágicos (purge es teatro — VIABILIDAD §4).
 
-## Fase 6 — Pulido / empaquetado
+## Fase 6 — Pulido / empaquetado ✅ (instalación pospuesta)
 
-- [ ] Icono, empaquetado .app, instalación en /Applications.
+- [x] Icono profesional (assets/icon-1024.png → BtoStats.icns).
+- [x] Empaquetado: scripts/package.sh → dist/BtoStats.app firmada ad hoc + zip
+      (LSUIElement, bundle id ec.bto.BtoStats). Verificado ejecutando el bundle.
+- [x] README completo + LICENSE licencia permisiva + release v0.6.0 en GitHub.
+- [x] Gates pre-release: code review + security review con verificación
+      adversarial; corregidos: wraparound de red al desaparecer interfaces,
+      carrera pid-reuse en matar procesos (verificación de identidad),
+      deadlock por stderr sin drenar + watchdog en spawns, baseline de red
+      del panel, top red congelado, NaN en EMA de GPU, parseMemory sin trap.
+- [ ] Instalación en /Applications: pospuesta a fase 8/9 a pedido (se sigue
+      compilando en modo dev para no duplicar instancias).
 - [ ] Mini-gráficos (sparklines) opcionales en el status item.
-- [ ] Manual con capturas.
+- [ ] Deuda del review (menores): cache de KeyInfo SMC, mach_port_deallocate,
+      una sola copia del IORegistry por tick, sanear nombre en el diálogo,
+      estado "no disponible" en menú, parser nettop con comas.
 
 ## Fase 7 — Widget de escritorio (adicional final — ver REQUERIMIENTOS R7)
 

@@ -28,9 +28,13 @@ final class NetworkReader {
         defer { previous = (totals.up, totals.down, now) }
 
         guard let previous, now > previous.uptime else { return nil }
+        // Si desaparece una interfaz (dock/USB-Ethernet/tethering) la suma total
+        // BAJA y el delta envolvería a ~2^64 → pico absurdo que arruina el
+        // gráfico. Re-basar y saltar este tick.
+        guard totals.up >= previous.up, totals.down >= previous.down else { return nil }
         let dt = now - previous.uptime
-        let upDelta = totals.up &- previous.up
-        let downDelta = totals.down &- previous.down
+        let upDelta = totals.up - previous.up
+        let downDelta = totals.down - previous.down
         return Snapshot(uploadBps: Double(upDelta) / dt,
                         downloadBps: Double(downDelta) / dt,
                         totalUploadBytes: totals.up,

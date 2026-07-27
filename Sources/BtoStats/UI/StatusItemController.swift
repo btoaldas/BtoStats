@@ -67,9 +67,8 @@ final class StatusItemController: NSObject {
     /// (de paso elimina cualquier baile de ancho al refrescar).
     private func applyGrid(_ grid: (title: NSAttributedString, width: CGFloat)) {
         statusItem.button?.attributedTitle = grid.title
-        // el botón centra el título y aplica ~8 pt de inset por lado: sin margen
-        // suficiente el contenido se recorta por los bordes
-        statusItem.length = grid.width + 14
+        // margen mínimo: solo lo justo para que el botón no recorte los bordes
+        statusItem.length = grid.width + 6
     }
 
     /// Clic izquierdo: panel grande. Clic derecho: menú de detalle.
@@ -232,14 +231,21 @@ final class StatusItemController: NSObject {
         paragraph.maximumLineHeight = lineHeight
         paragraph.lineBreakMode = .byClipping
 
-        func attributed(_ text: String, _ font: NSFont) -> NSAttributedString {
+        func attributed(_ text: String, _ font: NSFont, kern: CGFloat = 0) -> NSAttributedString {
             NSAttributedString(string: text, attributes: [
                 .font: font,
                 .foregroundColor: NSColor.labelColor,
                 .paragraphStyle: paragraph,
                 .baselineOffset: baseline,
+                .kern: kern,
             ])
         }
+
+        // Separadores uniformes y mínimos: 0.5 espacios entre título y valor,
+        // 1 espacio entre columnas (el medio espacio se logra con kern negativo).
+        let spaceAdvance = (" " as NSString).size(withAttributes: [.font: valueFont]).width
+        let halfSpace = attributed(" ", valueFont, kern: -spaceAdvance * 0.5)
+        let columnSpace = attributed(" ", valueFont)
 
         // Ancho de cada columna en caracteres (fuentes mono → padding exacto).
         let metrics: [(label: Int, value: Int)] = columns.map { column in
@@ -263,9 +269,10 @@ final class StatusItemController: NSObject {
             for (index, column) in columns.enumerated() {
                 let cell = row < column.count ? column[row] : nil
                 if index > 0 {
-                    line.append(attributed("  ", valueFont))
+                    line.append(columnSpace)
                 }
-                line.append(attributed(pad(cell?.0 ?? "", to: metrics[index].label, alignRight: false) + " ", labelFont))
+                line.append(attributed(pad(cell?.0 ?? "", to: metrics[index].label, alignRight: false), labelFont))
+                line.append(halfSpace)
                 line.append(attributed(pad(cell?.1 ?? "", to: metrics[index].value, alignRight: true), valueFont))
             }
             maxWidth = max(maxWidth, line.size().width)

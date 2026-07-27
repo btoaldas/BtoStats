@@ -23,6 +23,13 @@ final class ProcessReader {
     private var previousNet: [Int32: (inBytes: UInt64, outBytes: UInt64, name: String)] = [:]
     private var previousNetUptime: TimeInterval?
 
+    /// Descarta la línea base de red por proceso (llamar al abrir el panel:
+    /// un delta contra una muestra de hace horas daría tasas sin sentido).
+    func resetNetworkBaseline() {
+        previousNet = [:]
+        previousNetUptime = nil
+    }
+
     func read(limit: Int = 8) -> Snapshot {
         let cpu = topCPU(limit: limit)
         return Snapshot(topCPU: cpu.samples,
@@ -82,14 +89,16 @@ final class ProcessReader {
         while let last = cleaned.last, "+-".contains(last) { cleaned.removeLast() }
         guard let unit = cleaned.last else { return nil }
         let number = String(cleaned.dropLast())
-        guard let value = Double(number) else { return nil }
+        guard let value = Double(number), value.isFinite, value >= 0 else { return nil }
+        let multiplier: Double
         switch unit {
-        case "K": return UInt64(value * 1024)
-        case "M": return UInt64(value * 1024 * 1024)
-        case "G": return UInt64(value * 1024 * 1024 * 1024)
-        case "B": return UInt64(value)
-        default: return Double(cleaned).map { UInt64($0) }
+        case "K": multiplier = 1024
+        case "M": multiplier = 1024 * 1024
+        case "G": multiplier = 1024 * 1024 * 1024
+        case "B": multiplier = 1
+        default: return UInt64(exactly: (Double(cleaned) ?? -1).rounded())
         }
+        return UInt64(exactly: (value * multiplier).rounded())
     }
 
     // MARK: - Red por proceso (nettop -n, ~17 ms; B/s por deltas)
@@ -140,10 +149,16 @@ final class ProcessReader {
         process.arguments = arguments
         let stdout = Pipe()
         process.standardOutput = stdout
-        process.standardError = Pipe()
+        // stderr a /dev/null: un Pipe sin drenar se llena (64 KB) y bloquea
+        // al hijo → deadlock permanente de la cola de muestreo
+        process.standardError = FileHandle.nullDevice
         do { try process.run() } catch { return nil }
+        // red de seguridad: ningún muestreo debe colgar la cola para siempre
+        let watchdog = DispatchWorkItem { if process.isRunning { process.terminate() } }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 10, execute: watchdog)
         let data = stdout.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
+        watchdog.cancel()
         return String(data: data, encoding: .utf8)
     }
 }

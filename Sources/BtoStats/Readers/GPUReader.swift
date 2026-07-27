@@ -43,7 +43,8 @@ final class GPUReader {
               let stats = Self.performanceStatistics(of: service) else { return nil }
 
         guard let raw = (stats["Device Utilization %"] as? NSNumber)?.doubleValue
-                ?? (stats["GPU Activity(%)"] as? NSNumber)?.doubleValue else { return nil }
+                ?? (stats["GPU Activity(%)"] as? NSNumber)?.doubleValue,
+              raw.isFinite else { return nil }
 
         let clamped = min(max(raw, 0), 100)
         let smoothed = ema.map { $0 * 0.6 + clamped * 0.4 } ?? clamped
