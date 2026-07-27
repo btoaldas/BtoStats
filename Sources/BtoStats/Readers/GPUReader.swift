@@ -63,7 +63,10 @@ final class GPUReader {
         guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
               let dict = properties?.takeRetainedValue() as? [String: Any],
               let agc = dict["AGCInfo"] as? [String: Any],
-              let pid = (agc["fLastSubmissionPID"] as? NSNumber)?.int32Value, pid > 0 else { return nil }
+              let pid = (agc["fLastSubmissionPID"] as? NSNumber)?.int32Value, pid > 0,
+              // excluirnos: el redibujado del propio panel/widget usa GPU y
+              // sesgaría el muestreo hacia BtoStats
+              pid != ProcessInfo.processInfo.processIdentifier else { return nil }
         var buffer = [CChar](repeating: 0, count: 1024)
         guard proc_name(pid, &buffer, UInt32(buffer.count)) > 0 else { return nil }
         return String(cString: buffer)

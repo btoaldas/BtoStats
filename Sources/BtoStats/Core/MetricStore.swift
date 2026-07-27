@@ -12,15 +12,15 @@ final class MetricStore {
     private(set) var gpu: GPUReader.Snapshot?
     private(set) var sensors: SensorsReader.Snapshot?
 
-    private(set) var cpuHistory = RingBuffer<Double>(capacity: historyCapacity)
-    private(set) var memoryHistory = RingBuffer<Double>(capacity: historyCapacity)
-    private(set) var uploadHistory = RingBuffer<Double>(capacity: historyCapacity)
-    private(set) var downloadHistory = RingBuffer<Double>(capacity: historyCapacity)
-    private(set) var gpuHistory = RingBuffer<Double>(capacity: historyCapacity)
+    private(set) var cpuHistory = MetricSeries()
+    private(set) var memoryHistory = MetricSeries()
+    private(set) var uploadHistory = MetricSeries()
+    private(set) var downloadHistory = MetricSeries()
+    private(set) var gpuHistory = MetricSeries()
     /// Muestreo del último proceso en enviar trabajo a la GPU (1 por tick):
     /// base del "top GPU aproximado" — macOS no da %GPU por proceso sin admin.
     private(set) var gpuSubmitterHistory = RingBuffer<String>(capacity: historyCapacity)
-    private(set) var cpuTempHistory = RingBuffer<Double>(capacity: historyCapacity)
+    private(set) var cpuTempHistory = MetricSeries()
 
     func updateFast(cpu: CPUReader.Snapshot?,
                     memory: MemoryReader.Snapshot?,

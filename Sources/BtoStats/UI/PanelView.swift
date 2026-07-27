@@ -9,9 +9,11 @@ struct PanelView: View {
     private var processFont: CGFloat { 11 * scale }
     private var kpiFont: CGFloat { 17 * scale }
 
+    @State private var windowSeconds: Int = AppConfig.shared.chartWindowSeconds
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14 * scale) {
-            scaleBar
+        VStack(alignment: .leading, spacing: 12 * scale) {
+            controlBar
             kpiRow
             HStack(spacing: 14) {
                 usageChart
@@ -20,13 +22,26 @@ struct PanelView: View {
             .frame(height: 150 * scale)
             topsRow
         }
-        .padding(16)
+        .padding(.top, 8)
+        .padding([.horizontal, .bottom], 16)
         .frame(width: 820 * scale)
     }
 
-    /// Tamaño ajustable desde el propio panel (se guarda en preferencias).
-    private var scaleBar: some View {
-        HStack {
+    /// Fila única y compacta: ventana temporal de las gráficas + zoom.
+    private var controlBar: some View {
+        HStack(spacing: 8) {
+            Picker("", selection: $windowSeconds) {
+                Text("1 min").tag(60)
+                Text("5 min").tag(300)
+                Text("30 min").tag(1800)
+                Text("1 h").tag(3600)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 260)
+            .onChange(of: windowSeconds) { _, newValue in
+                AppConfig.shared.chartWindowSeconds = newValue
+            }
             Spacer()
             Button { changeScale(-0.1) } label: { Image(systemName: "minus.magnifyingglass") }
                 .buttonStyle(.borderless)
@@ -35,11 +50,11 @@ struct PanelView: View {
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
-                .frame(width: 44)
             Button { changeScale(0.1) } label: { Image(systemName: "plus.magnifyingglass") }
                 .buttonStyle(.borderless)
                 .disabled(scale >= 1.59)
         }
+        .frame(height: 22)
     }
 
     private func changeScale(_ delta: Double) {
@@ -98,50 +113,88 @@ struct PanelView: View {
 
     // MARK: - Gráficos
 
+    /// Corre el eje X para que el último punto quede SIEMPRE en el borde
+    /// derecho: la gráfica se desplaza en vez de comprimirse.
+    private func shifted(_ values: [Double]) -> [(x: Int, y: Double)] {
+        let offset = model.windowCapacity - values.count
+        return values.enumerated().map { (x: $0.offset + offset, y: $0.element) }
+    }
+
     private var usageChart: some View {
-        chartCard("Uso % — histórico") {
+        chartCard("Uso % — en vivo") {
             Chart {
-                ForEach(Array(model.cpuHistory.enumerated()), id: \.offset) { index, value in
-                    LineMark(x: .value("t", index), y: .value("%", value * 100),
+                ForEach(shifted(model.cpuHistory), id: \.x) { point in
+                    LineMark(x: .value("t", point.x), y: .value("%", point.y * 100),
                              series: .value("Serie", "CPU"))
                         .foregroundStyle(by: .value("Serie", "CPU"))
                 }
-                ForEach(Array(model.gpuHistory.enumerated()), id: \.offset) { index, value in
-                    LineMark(x: .value("t", index), y: .value("%", value),
+                ForEach(shifted(model.gpuHistory), id: \.x) { point in
+                    LineMark(x: .value("t", point.x), y: .value("%", point.y),
                              series: .value("Serie", "GPU"))
                         .foregroundStyle(by: .value("Serie", "GPU"))
                 }
-                ForEach(Array(model.memoryHistory.enumerated()), id: \.offset) { index, value in
-                    LineMark(x: .value("t", index), y: .value("%", value * 100),
+                ForEach(shifted(model.memoryHistory), id: \.x) { point in
+                    LineMark(x: .value("t", point.x), y: .value("%", point.y * 100),
                              series: .value("Serie", "RAM"))
                         .foregroundStyle(by: .value("Serie", "RAM"))
                 }
             }
             .chartForegroundStyleScale(["CPU": Color.blue, "GPU": Color.green, "RAM": Color.orange])
             .chartYScale(domain: 0...100)
+            .chartXScale(domain: 0...model.windowCapacity)
             .chartXAxis(.hidden)
             .chartLegend(position: .top, alignment: .leading)
         }
     }
 
     private var networkChart: some View {
-        chartCard("Red B/s — histórico") {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Red — en vivo").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Text("enlace \(model.linkSpeedText)")
+                    .font(.caption2).foregroundStyle(.secondary)
+                Text("· pico \(StatusItemController.rate(peakVisible))/s")
+                    .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+            }
             Chart {
-                ForEach(Array(model.downloadHistory.enumerated()), id: \.offset) { index, value in
-                    LineMark(x: .value("t", index), y: .value("B/s", value),
+                ForEach(shifted(model.downloadHistory), id: \.x) { point in
+                    LineMark(x: .value("t", point.x), y: .value("B/s", point.y),
                              series: .value("Serie", "↓ Bajada"))
                         .foregroundStyle(by: .value("Serie", "↓ Bajada"))
                 }
-                ForEach(Array(model.uploadHistory.enumerated()), id: \.offset) { index, value in
-                    LineMark(x: .value("t", index), y: .value("B/s", value),
+                ForEach(shifted(model.uploadHistory), id: \.x) { point in
+                    LineMark(x: .value("t", point.x), y: .value("B/s", point.y),
                              series: .value("Serie", "↑ Subida"))
                         .foregroundStyle(by: .value("Serie", "↑ Subida"))
                 }
             }
             .chartForegroundStyleScale(["↓ Bajada": Color.blue, "↑ Subida": Color.red])
+            .chartXScale(domain: 0...model.windowCapacity)
             .chartXAxis(.hidden)
+            .chartYAxis {
+                AxisMarks(position: .trailing) { value in
+                    AxisGridLine()
+                    AxisValueLabel {
+                        if let bps = value.as(Double.self) {
+                            Text(StatusItemController.rate(bps) + "/s")
+                                .font(.system(size: 9))
+                        }
+                    }
+                }
+            }
             .chartLegend(position: .top, alignment: .leading)
         }
+        .padding(10)
+        .frame(maxWidth: .infinity)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// Máximo de la ventana visible (la escala Y ya es dinámica: Charts la
+    /// ajusta al máximo actual — el ancho de banda del enlace es el dato fijo
+    /// de la izquierda, la velocidad real es la gráfica).
+    private var peakVisible: Double {
+        max(model.downloadHistory.max() ?? 0, model.uploadHistory.max() ?? 0)
     }
 
     private func chartCard(_ title: String, @ViewBuilder content: () -> some View) -> some View {

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CoreWLAN
 
 /// Estado observable del panel grande. Se actualiza desde el hilo principal
 /// en cada tick (métricas) y cada ~5 s (top procesos).
@@ -23,6 +24,8 @@ final class PanelModel: ObservableObject {
     @Published var memoryHistory: [Double] = []    // 0-1
     @Published var uploadHistory: [Double] = []    // B/s
     @Published var downloadHistory: [Double] = []  // B/s
+    @Published var windowCapacity: Int = 300       // puntos de la ventana (dominio X)
+    @Published var linkSpeedText: String = "—"     // ancho de banda del enlace
 
     @Published var memoryPressure: MemoryAdvisor.Pressure = .normal
     @Published var lastGPUProcess: String?
@@ -73,10 +76,20 @@ final class PanelModel: ObservableObject {
                 .prefix(8)
                 .map { $0 }
         }
-        cpuHistory = store.cpuHistory.elements
-        gpuHistory = store.gpuHistory.elements
-        memoryHistory = store.memoryHistory.elements
-        uploadHistory = store.uploadHistory.elements
-        downloadHistory = store.downloadHistory.elements
+        let seconds = AppConfig.shared.chartWindowSeconds
+        let cpu = store.cpuHistory.window(seconds: seconds)
+        cpuHistory = cpu.values
+        windowCapacity = cpu.capacity
+        gpuHistory = store.gpuHistory.window(seconds: seconds).values
+        memoryHistory = store.memoryHistory.window(seconds: seconds).values
+        uploadHistory = store.uploadHistory.window(seconds: seconds).values
+        downloadHistory = store.downloadHistory.window(seconds: seconds).values
+
+        // Velocidad negociada del enlace Wi-Fi (Mbps). Ethernet: pendiente.
+        if let rate = CWWiFiClient.shared().interface()?.transmitRate(), rate > 0 {
+            linkSpeedText = rate >= 1000
+                ? String(format: "%.1f Gbps", rate / 1000)
+                : String(format: "%.0f Mbps", rate)
+        }
     }
 }

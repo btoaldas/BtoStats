@@ -7,7 +7,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "BtoStats",
-            path: "Sources/BtoStats"
+            path: "Sources/BtoStats",
+            linkerSettings: [.linkedFramework("CoreWLAN")]
         )
     ]
 )

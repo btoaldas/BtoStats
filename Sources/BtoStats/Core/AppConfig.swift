@@ -50,6 +50,7 @@ final class AppConfig {
         static let desktopWidgetSize = "desktopWidgetSize"
         static let desktopWidgetOriginX = "desktopWidgetOriginX"
         static let desktopWidgetOriginY = "desktopWidgetOriginY"
+        static let chartWindowSeconds = "chartWindowSeconds"
     }
 
     enum DesktopWidgetSize: String, CaseIterable, Identifiable {
@@ -121,6 +122,15 @@ final class AppConfig {
             return value == 0 ? 1.0 : min(max(value, 0.8), 1.6)
         }
         set { defaults.set(min(max(newValue, 0.8), 1.6), forKey: Key.panelScale) }
+    }
+
+    /// Ventana temporal de las gráficas del panel (60/300/1800/3600 s).
+    var chartWindowSeconds: Int {
+        get {
+            let value = defaults.integer(forKey: Key.chartWindowSeconds)
+            return [60, 300, 1800, 3600].contains(value) ? value : 300
+        }
+        set { defaults.set(newValue, forKey: Key.chartWindowSeconds) }
     }
 
     /// Widget de escritorio (fase 7) — OFF por defecto, como toda feature nueva.

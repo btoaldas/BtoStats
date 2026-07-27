@@ -28,8 +28,8 @@ final class DesktopWidgetModel: ObservableObject {
             uploadBps = network.uploadBps
             downloadBps = network.downloadBps
         }
-        cpuHistory = store.cpuHistory.elements
-        ramHistory = store.memoryHistory.elements
+        cpuHistory = store.cpuHistory.window(seconds: 300).values
+        ramHistory = store.memoryHistory.window(seconds: 300).values
     }
 }
 
