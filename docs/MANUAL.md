@@ -85,9 +85,10 @@ detalle de memoria (swap y comprimida).
 **¿Por qué no pide contraseña ni permisos?** Todo se lee con APIs sin
 privilegios (detalle técnico en [VIABILIDAD.md](VIABILIDAD.md)).
 
-**¿Por qué el top de GPU es "aproximado"?** macOS no expone %GPU por proceso
-sin permisos de administrador; se muestrea el último proceso que envió trabajo
-a la GPU. El % exacto llegará con el helper opcional (fase 8).
+**¿Por qué el top de GPU es "aproximado"?** macOS no expone el uso de GPU por
+proceso en Apple Silicon — ni siquiera con permisos de administrador
+(verificado). BtoStats muestrea qué proceso envía trabajo a la GPU y calcula
+el porcentaje de tiempo de cada uno.
 
 **¿"Liberar RAM"?** Los liberadores clásicos son teatro: purgan caché que
 macOS repone enseguida. BtoStats muestra la presión real y te deja cerrar a
