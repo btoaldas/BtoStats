@@ -12,6 +12,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let diskReader = DiskReader()
     private let gpuReader = GPUReader()
     private let sensorsReader = SensorsReader()
+    private var tickCounter = 0
+    private var lastGPU: GPUReader.Snapshot?
+    private var lastSensors: SensorsReader.Snapshot?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusController = StatusItemController(store: store)
@@ -50,8 +53,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let cpu = self.cpuReader.read()
                 let memory = self.memoryReader.read()
                 let network = self.networkReader.read()
-                let gpu = self.gpuReader.read()
-                let sensors = self.sensorsReader.read()
+                // GPU (copia del IORegistry) y sensores (~60 lecturas SMC) son
+                // los readers caros: se leen cada 2 ticks. Temp/GPU no cambian
+                // de forma perceptible en 1 s; baja el consumo base a la mitad.
+                self.tickCounter += 1
+                if self.tickCounter % 2 == 0 {
+                    self.lastGPU = self.gpuReader.read()
+                    self.lastSensors = self.sensorsReader.read()
+                }
+                let gpu = self.lastGPU
+                let sensors = self.lastSensors
                 DispatchQueue.main.async {
                     self.store.updateFast(cpu: cpu, memory: memory, network: network,
                                           gpu: gpu, sensors: sensors)

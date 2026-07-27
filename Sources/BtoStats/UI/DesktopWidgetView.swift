@@ -76,7 +76,6 @@ struct RingGauge: View {
             }
         }
         .frame(width: diameter, height: diameter)
-        .animation(.easeOut(duration: 0.5), value: fraction)
     }
 }
 

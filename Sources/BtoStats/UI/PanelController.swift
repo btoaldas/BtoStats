@@ -123,7 +123,13 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private func startProcessSampling() {
         processQueue.async { [weak self] in self?.processReader.resetNetworkBaseline() }
-        sampleProcesses() // primera muestra inmediata (baseline de red)
+        sampleProcesses() // baseline de red (aún sin deltas)
+        // segunda muestra a 1.5 s: el top de red necesita 2 muestras para el
+        // delta; sin esto quedaría "midiendo…" hasta el primer tick de 5 s
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self, self.isVisible else { return }
+            self.sampleProcesses()
+        }
         let timer = Timer(timeInterval: 5.0, repeats: true) { [weak self] _ in
             self?.sampleProcesses()
         }
