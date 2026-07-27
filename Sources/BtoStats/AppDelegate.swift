@@ -15,6 +15,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var tickCounter = 0
     private var lastGPU: GPUReader.Snapshot?
     private var lastSensors: SensorsReader.Snapshot?
+    private let alertMonitor = AlertMonitor()
+    private var uptimeAtLaunch = ProcessInfo.processInfo.systemUptime
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusController = StatusItemController(store: store)
@@ -25,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.statusController?.render()
         }
         startSampling()
+        alertMonitor.requestAuthorizationIfNeeded()
 
         // Modo de prueba: abre Preferencias a los 2 s (capturas del manual).
         if ProcessInfo.processInfo.environment["BTOSTATS_TEST_SETTINGS"] != nil {
@@ -71,6 +74,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // sync (no solo refresh): permite activar/desactivar/redimensionar
                     // en vivo, incluso con `defaults write` externo
                     self.desktopWidget.sync(store: self.store)
+                    self.alertMonitor.check(store: self.store,
+                                            now: ProcessInfo.processInfo.systemUptime)
                 }
             },
             slow: { [weak self] in
