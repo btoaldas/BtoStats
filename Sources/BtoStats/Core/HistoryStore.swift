@@ -32,11 +32,15 @@ final class HistoryStore {
         lastWrite = now
         var doubles = [now, cpu, ram, gpu, temp]
         let data = Data(bytes: &doubles, count: Self.stride)
+        // API lanzable (no las deprecadas seekToEndOfFile/write, que levantan
+        // NSException no atrapable y abortarían la app con el disco lleno).
         if let handle = try? FileHandle(forWritingTo: url) {
-            handle.seekToEndOfFile()
-            handle.write(data)
-            try? handle.close()
-        } else {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: data)
+        } else if !FileManager.default.fileExists(atPath: url.path) {
+            // solo crear si NO existe: un fallo transitorio no debe truncar
+            // el histórico acumulado
             try? data.write(to: url)
         }
     }

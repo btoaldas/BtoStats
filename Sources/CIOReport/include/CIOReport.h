@@ -31,4 +31,10 @@ int64_t IOReportStateGetResidency(CFDictionaryRef ch, int32_t index);
 
 void IOReportIterate(CFDictionaryRef samples, ioreportiterateblock block);
 
+// CFRelease no está disponible desde Swift; wrapper para liberar la
+// suscripción de IOReport (OpaquePointer, fuera de ARC).
+static inline void BtoReleaseIOReportSubscription(IOReportSubscriptionRef sub) {
+    if (sub) CFRelease((CFTypeRef)sub);
+}
+
 #endif

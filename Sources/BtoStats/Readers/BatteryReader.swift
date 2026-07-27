@@ -51,9 +51,17 @@ final class BatteryReader {
               let dict = props?.takeRetainedValue() as? [String: Any] else { return (0, 0, 0, nil) }
 
         let cycles = dict["CycleCount"] as? Int ?? 0
-        let maxCap = dict["AppleRawMaxCapacity"] as? Int ?? dict["MaxCapacity"] as? Int ?? 0
+        // AppleRawMaxCapacity y DesignCapacity vienen en mAh; MaxCapacity suele
+        // ser ya un porcentaje normalizado — no mezclarlos (daría ~1% absurdo).
         let designCap = dict["DesignCapacity"] as? Int ?? 0
-        let health = designCap > 0 ? Int(Double(maxCap) / Double(designCap) * 100) : 0
+        let health: Int
+        if let rawMax = dict["AppleRawMaxCapacity"] as? Int, designCap > 0 {
+            health = Int(Double(rawMax) / Double(designCap) * 100)
+        } else if let pct = dict["MaxCapacity"] as? Int, pct <= 100 {
+            health = pct
+        } else {
+            health = 0
+        }
 
         let amperage = Double(dict["Amperage"] as? Int ?? 0)   // mA (con signo)
         let voltage = Double(dict["Voltage"] as? Int ?? 0)     // mV

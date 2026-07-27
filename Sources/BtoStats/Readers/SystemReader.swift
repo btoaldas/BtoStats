@@ -3,6 +3,10 @@ import Foundation
 /// Datos "avanzados" del sistema vía sysctl (sin privilegios, baratos).
 /// Uptime, load average, nº de procesos/hilos, swap y memoria comprimida.
 final class SystemReader {
+    /// mach_host_self() entrega un send-right que hay que liberar; cachearlo
+    /// una vez evita filtrar una referencia de puerto por tick.
+    private static let host = mach_host_self()
+
     struct Snapshot {
         let uptimeSeconds: Double
         let loadAverage: (Double, Double, Double) // 1, 5, 15 min
@@ -57,7 +61,7 @@ final class SystemReader {
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.stride / MemoryLayout<integer_t>.stride)
         let result = withUnsafeMutablePointer(to: &stats) {
             $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+                host_statistics64(Self.host, HOST_VM_INFO64, $0, &count)
             }
         }
         guard result == KERN_SUCCESS else { return 0 }

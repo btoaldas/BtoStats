@@ -27,6 +27,14 @@ final class PowerReader {
         subscribedChannels = subbed?.takeRetainedValue()
     }
 
+    deinit {
+        // IOReportSubscriptionRef llega como OpaquePointer (no es tipo CF que
+        // ARC gestione): liberar explícitamente al destruir el reader.
+        if let subscription {
+            BtoReleaseIOReportSubscription(subscription)
+        }
+    }
+
     func read() -> Snapshot? {
         guard let subscription, let subscribedChannels else { return nil }
         guard let sample = IOReportCreateSamples(subscription, subscribedChannels, nil)?
@@ -51,7 +59,10 @@ final class PowerReader {
 
         func watts(_ keys: [String]) -> Double? {
             let total = keys.compactMap { energy[$0] }.reduce(0, +)
-            return keys.contains { energy[$0] != nil } ? total / dt : nil
+            guard keys.contains(where: { energy[$0] != nil }) else { return nil }
+            let w = total / dt
+            // descartar valores absurdos (unidad mal interpretada)
+            return (w.isFinite && w >= 0 && w < 500) ? w : nil
         }
 
         return Snapshot(cpuWatts: watts(["CPU Energy", "ECPU", "PCPU"]),
@@ -65,7 +76,7 @@ final class PowerReader {
         case "mj": return 1e-3
         case "uj", "µj": return 1e-6
         case "nj": return 1e-9
-        default: return 1e-9 // Apple suele reportar nJ en Energy Model
+        default: return 1e-3 // Energy Model de Apple Silicon reporta mJ
         }
     }
 }
