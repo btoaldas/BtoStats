@@ -26,10 +26,14 @@ reproducible antes de darse por cerrada.
       rango físico). Temperatura CPU/GPU en cuadrícula y menú; ventiladores RPM
       en menú. Verificado con prueba térmica (carga → +10 °C → enfriamiento).
 
-## Fase 3 — Configuración (todo parametrizable)
+## Fase 3 — Configuración (todo parametrizable) ✅
 
-- [ ] Preferencias: checks por métrica, orden de celdas, cadencia, unidades.
-- [ ] Persistencia en UserDefaults. Launch at login (SMAppService).
+- [x] Preferencias (ventana SwiftUI): check por métrica individual, orden por
+      arrastre, cadencia 1-5 s. Cambios aplican en vivo.
+- [x] Persistencia en UserDefaults (suite ec.bto.BtoStats); los cambios externos
+      con `defaults write` también se reflejan en vivo (checks/orden).
+- [x] Launch at login (SMAppService) — toggle listo; activo cuando la app esté
+      empaquetada como .app (fase 6). Deshabilitado con nota mientras tanto.
 
 ## Fase 4 — Panel grande
 

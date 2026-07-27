@@ -2,9 +2,10 @@ import AppKit
 
 /// Status item con cuadrícula compacta multi-columna (2 filas, mono 9 pt)
 /// y menú con detalle.
-final class StatusItemController {
+final class StatusItemController: NSObject {
     private let statusItem: NSStatusItem
     private let store: MetricStore
+    private let settingsController = SettingsWindowController()
 
     private let cpuMenuItem = NSMenuItem(title: "CPU: midiendo…", action: nil, keyEquivalent: "")
     private let memoryMenuItem = NSMenuItem(title: "RAM: midiendo…", action: nil, keyEquivalent: "")
@@ -16,6 +17,7 @@ final class StatusItemController {
     init(store: MetricStore) {
         self.store = store
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        super.init()
         statusItem.button?.attributedTitle = Self.grid(columns: [
             [("CPU", " --%"), ("MEM", " --%")],
             [("↑", "   --"), ("↓", "   --")],
@@ -31,6 +33,13 @@ final class StatusItemController {
             menu.addItem(item)
         }
         menu.addItem(.separator())
+        let settings = NSMenuItem(title: "",
+                                  action: #selector(openSettings),
+                                  keyEquivalent: ",")
+        settings.target = self
+        settings.isEnabled = true
+        settings.attributedTitle = Self.detailTitle("Preferencias…")
+        menu.addItem(settings)
         // El badge de atajo del sistema siempre se pinta tenue; se embebe "⌘Q"
         // en el título para que salga en blanco pleno.
         let quit = NSMenuItem(title: "",
@@ -59,26 +68,35 @@ final class StatusItemController {
         ])
     }
 
-    func render() {
-        let cpuText = store.cpu.map { String(format: "%3.0f%%", $0.totalUsage * 100) } ?? " --%"
-        let memText = store.memory.map { String(format: "%3.0f%%", $0.fractionUsed * 100) } ?? " --%"
-        let upText = store.network.map { Self.rate($0.uploadBps) } ?? "   --"
-        let downText = store.network.map { Self.rate($0.downloadBps) } ?? "   --"
+    @objc private func openSettings() {
+        settingsController.show()
+    }
 
-        var columns: [[(String, String)]] = [
-            [("CPU", cpuText), ("MEM", memText)],
-        ]
-        if store.gpu != nil || store.sensors?.cpuTempAvg != nil {
-            let gpuText = store.gpu.map { String(format: "%3.0f%%", $0.utilization) } ?? " --%"
-            let tempText = store.sensors?.cpuTempAvg.map { String(format: "%3.0f°", $0) } ?? " --°"
-            columns.append([("GPU", gpuText), ("TMP", tempText)])
+    /// Valor de una métrica para su celda, o nil si el reader aún no entrega dato.
+    private func cellValue(for metric: MetricID) -> String {
+        switch metric {
+        case .cpu: return store.cpu.map { String(format: "%3.0f%%", $0.totalUsage * 100) } ?? " --%"
+        case .memory: return store.memory.map { String(format: "%3.0f%%", $0.fractionUsed * 100) } ?? " --%"
+        case .gpu: return store.gpu.map { String(format: "%3.0f%%", $0.utilization) } ?? " --%"
+        case .temperature: return store.sensors?.cpuTempAvg.map { String(format: "%3.0f°", $0) } ?? " --°"
+        case .networkUp: return store.network.map { Self.rate($0.uploadBps) } ?? "   --"
+        case .networkDown: return store.network.map { Self.rate($0.downloadBps) } ?? "   --"
+        case .diskFree: return store.disk.map { Self.bytes($0.availableBytes) } ?? "   --"
+        case .diskTotal: return store.disk.map { Self.bytes($0.totalBytes) } ?? "   --"
         }
-        columns.append([("↑", upText), ("↓", downText)])
-        if let disk = store.disk {
-            columns.append([("D", Self.bytes(disk.availableBytes)),
-                            (" ", Self.bytes(disk.totalBytes))])
+    }
+
+    func render() {
+        let visible = AppConfig.shared.visibleMetrics
+        let cells: [(String, String)] = visible.map { ($0.gridLabel, cellValue(for: $0)) }
+        let columns: [[(String, String)]] = stride(from: 0, to: cells.count, by: 2).map {
+            Array(cells[$0..<min($0 + 2, cells.count)])
         }
-        statusItem.button?.attributedTitle = Self.grid(columns: columns)
+        if columns.isEmpty {
+            statusItem.button?.attributedTitle = Self.grid(columns: [[("Bto", "Stats")]])
+        } else {
+            statusItem.button?.attributedTitle = Self.grid(columns: columns)
+        }
 
         if let cpu = store.cpu {
             cpuMenuItem.attributedTitle = Self.detailTitle(String(format: "CPU: %.1f%% (%d núcleos)",

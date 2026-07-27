@@ -14,9 +14,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusController = StatusItemController(store: store)
+        NotificationCenter.default.addObserver(forName: AppConfig.changedNotification,
+                                               object: nil,
+                                               queue: .main) { [weak self] _ in
+            self?.startSampling()
+            self?.statusController?.render()
+        }
+        startSampling()
+    }
 
+    private func startSampling() {
         sampler.start(
-            fastInterval: 1.0,
+            fastInterval: AppConfig.shared.fastInterval,
             slowInterval: 60.0,
             fast: { [weak self] in
                 guard let self else { return }
