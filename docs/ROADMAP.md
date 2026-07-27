@@ -73,12 +73,15 @@ reproducible antes de darse por cerrada.
       una sola copia del IORegistry por tick, sanear nombre en el diálogo,
       estado "no disponible" en menú, parser nettop con comas.
 
-## Fase 7 — Widget de escritorio (adicional final — ver REQUERIMIENTOS R7)
+## Fase 7 — Widget de escritorio ✅
 
-- [ ] Widget estilo anillos (CPU/GPU/RAM/Disco) en el escritorio, tiempo real.
-- [ ] Tamaños S/M/L/XL con más métricas según tamaño; métricas configurables.
-- [ ] Decisión técnica: ventana desktop-level propia vs WidgetKit (timeline
-      no da 1 Hz — ver VIABILIDAD).
+- [x] Ventana propia a nivel escritorio (desktop+1: sobre el fondo, bajo las
+      ventanas; todos los espacios) — WidgetKit descartado (no da 1 Hz).
+- [x] Anillos en tiempo real: S (CPU), M (CPU/GPU/RAM/Disk 2×2), L (+Temp y
+      red ↑↓ + disco libre), XL (+mini gráfico de histórico CPU/RAM).
+- [x] OFF por defecto; toggle y tamaño en Preferencias (cambios en vivo);
+      arrastrable con posición persistente.
+- [ ] Métricas de los anillos configurables (hoy CPU/GPU/RAM/Disk fijas).
 
 ## Fase 8 — Helper de administrador (opcional, OFF por defecto)
 

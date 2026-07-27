@@ -46,6 +46,23 @@ final class AppConfig {
         static let fastInterval = "fastInterval"
         static let gridRows = "gridRows"
         static let panelScale = "panelScale"
+        static let desktopWidgetEnabled = "desktopWidgetEnabled"
+        static let desktopWidgetSize = "desktopWidgetSize"
+        static let desktopWidgetOriginX = "desktopWidgetOriginX"
+        static let desktopWidgetOriginY = "desktopWidgetOriginY"
+    }
+
+    enum DesktopWidgetSize: String, CaseIterable, Identifiable {
+        case s, m, l, xl
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .s: return "S (1 anillo)"
+            case .m: return "M (4 anillos)"
+            case .l: return "L (6 métricas)"
+            case .xl: return "XL (con gráfico)"
+            }
+        }
     }
 
     /// Migración de configs previas: networkUp/networkDown eran métricas sueltas
@@ -104,6 +121,32 @@ final class AppConfig {
             return value == 0 ? 1.0 : min(max(value, 0.8), 1.6)
         }
         set { defaults.set(min(max(newValue, 0.8), 1.6), forKey: Key.panelScale) }
+    }
+
+    /// Widget de escritorio (fase 7) — OFF por defecto, como toda feature nueva.
+    var desktopWidgetEnabled: Bool {
+        get { defaults.bool(forKey: Key.desktopWidgetEnabled) }
+        set { defaults.set(newValue, forKey: Key.desktopWidgetEnabled) }
+    }
+
+    var desktopWidgetSize: DesktopWidgetSize {
+        get {
+            DesktopWidgetSize(rawValue: defaults.string(forKey: Key.desktopWidgetSize) ?? "m") ?? .m
+        }
+        set { defaults.set(newValue.rawValue, forKey: Key.desktopWidgetSize) }
+    }
+
+    /// Posición persistida del widget de escritorio (nil = primera vez).
+    var desktopWidgetOrigin: CGPoint? {
+        get {
+            guard defaults.object(forKey: Key.desktopWidgetOriginX) != nil else { return nil }
+            return CGPoint(x: defaults.double(forKey: Key.desktopWidgetOriginX),
+                           y: defaults.double(forKey: Key.desktopWidgetOriginY))
+        }
+        set {
+            defaults.set(newValue?.x ?? 0, forKey: Key.desktopWidgetOriginX)
+            defaults.set(newValue?.y ?? 0, forKey: Key.desktopWidgetOriginY)
+        }
     }
 
     func setEnabled(_ metric: MetricID, _ enabled: Bool) {

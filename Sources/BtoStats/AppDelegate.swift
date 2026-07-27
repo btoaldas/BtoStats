@@ -4,6 +4,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = MetricStore()
     private let sampler = Sampler()
     private var statusController: StatusItemController?
+    private let desktopWidget = DesktopWidgetController()
 
     private let cpuReader = CPUReader()
     private let memoryReader = MemoryReader()
@@ -48,6 +49,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                           gpu: gpu, sensors: sensors)
                     self.statusController?.render()
                     self.statusController?.panelController.refresh(from: self.store)
+                    // sync (no solo refresh): permite activar/desactivar/redimensionar
+                    // en vivo, incluso con `defaults write` externo
+                    self.desktopWidget.sync(store: self.store)
                 }
             },
             slow: { [weak self] in

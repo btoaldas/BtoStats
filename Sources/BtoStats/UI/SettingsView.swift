@@ -8,6 +8,8 @@ struct SettingsView: View {
     @State private var disabled: Set<MetricID> = AppConfig.shared.disabledMetrics
     @State private var interval: Double = AppConfig.shared.fastInterval
     @State private var rows: Int = AppConfig.shared.gridRows
+    @State private var desktopWidgetOn: Bool = AppConfig.shared.desktopWidgetEnabled
+    @State private var desktopWidgetSize: AppConfig.DesktopWidgetSize = AppConfig.shared.desktopWidgetSize
     @State private var launchAtLogin: Bool = SMAppService.mainApp.status == .enabled
     @State private var launchError: String?
 
@@ -67,6 +69,28 @@ struct SettingsView: View {
                 Text(String(format: "%.1f s", interval))
                     .monospacedDigit()
                     .frame(width: 44, alignment: .trailing)
+            }
+
+            Divider()
+
+            Toggle("Widget de escritorio (anillos en tiempo real)", isOn: $desktopWidgetOn)
+                .onChange(of: desktopWidgetOn) { _, enabled in
+                    AppConfig.shared.desktopWidgetEnabled = enabled
+                    AppConfig.shared.notifyChanged()
+                }
+            if desktopWidgetOn {
+                Picker("Tamaño del widget", selection: $desktopWidgetSize) {
+                    ForEach(AppConfig.DesktopWidgetSize.allCases) { size in
+                        Text(size.displayName).tag(size)
+                    }
+                }
+                .onChange(of: desktopWidgetSize) { _, newSize in
+                    AppConfig.shared.desktopWidgetSize = newSize
+                    AppConfig.shared.notifyChanged()
+                }
+                Text("Arrástralo por el fondo para ubicarlo; la posición se recuerda.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Toggle("Abrir al iniciar sesión", isOn: $launchAtLogin)
