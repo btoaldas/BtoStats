@@ -6,6 +6,8 @@ final class StatusItemController: NSObject {
     private let statusItem: NSStatusItem
     private let store: MetricStore
     private let settingsController = SettingsWindowController()
+    let panelController = PanelController()
+    private var contextMenu: NSMenu?
 
     private let cpuMenuItem = NSMenuItem(title: "CPU: midiendo…", action: nil, keyEquivalent: "")
     private let memoryMenuItem = NSMenuItem(title: "RAM: midiendo…", action: nil, keyEquivalent: "")
@@ -18,10 +20,12 @@ final class StatusItemController: NSObject {
         self.store = store
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
+        statusItem.button?.target = self
+        statusItem.button?.action = #selector(statusItemClicked)
+        statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         statusItem.button?.attributedTitle = Self.grid(columns: [
             [("CPU", " --%"), ("MEM", " --%")],
-            [("↑", "   --"), ("↓", "   --")],
-        ])
+        ], rows: 2)
         buildMenu()
     }
 
@@ -56,7 +60,18 @@ final class StatusItemController: NSObject {
         ]))
         quit.attributedTitle = quitTitle
         menu.addItem(quit)
-        statusItem.menu = menu
+        contextMenu = menu
+    }
+
+    /// Clic izquierdo: panel grande. Clic derecho: menú de detalle.
+    @objc private func statusItemClicked() {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            statusItem.menu = contextMenu
+            statusItem.button?.performClick(nil)
+            statusItem.menu = nil // sin esto el menú captura también el clic izquierdo
+        } else {
+            panelController.toggle(relativeTo: statusItem.button, store: store)
+        }
     }
 
     /// Título de ítem de detalle en blanco pleno (los ítems informativos sin
@@ -79,23 +94,54 @@ final class StatusItemController: NSObject {
         case .memory: return store.memory.map { String(format: "%3.0f%%", $0.fractionUsed * 100) } ?? " --%"
         case .gpu: return store.gpu.map { String(format: "%3.0f%%", $0.utilization) } ?? " --%"
         case .temperature: return store.sensors?.cpuTempAvg.map { String(format: "%3.0f°", $0) } ?? " --°"
-        case .networkUp: return store.network.map { Self.rate($0.uploadBps) } ?? "   --"
-        case .networkDown: return store.network.map { Self.rate($0.downloadBps) } ?? "   --"
+        case .network: return "" // el bloque de red se expande en render()
         case .diskFree: return store.disk.map { Self.bytes($0.availableBytes) } ?? "   --"
         case .diskTotal: return store.disk.map { Self.bytes($0.totalBytes) } ?? "   --"
         }
     }
 
     func render() {
-        let visible = AppConfig.shared.visibleMetrics
-        let cells: [(String, String)] = visible.map { ($0.gridLabel, cellValue(for: $0)) }
-        let columns: [[(String, String)]] = stride(from: 0, to: cells.count, by: 2).map {
-            Array(cells[$0..<min($0 + 2, cells.count)])
+        let config = AppConfig.shared
+        let rows = config.gridRows
+
+        // Cada métrica es un bloque de 1 celda, salvo la red: bloque indivisible
+        // de 2 celdas contiguas en la misma columna (↑ arriba, ↓ abajo).
+        var blocks: [[(String, String)]] = []
+        for metric in config.visibleMetrics {
+            if metric == .network {
+                let up = store.network.map { Self.rate($0.uploadBps) } ?? "   --"
+                let down = store.network.map { Self.rate($0.downloadBps) } ?? "   --"
+                blocks.append([("↑", up), ("↓", down)])
+            } else {
+                blocks.append([(metric.gridLabel, cellValue(for: metric))])
+            }
         }
+
+        // Empaquetado por columnas de `rows` celdas sin partir bloques:
+        // si el bloque no cabe en lo que queda de columna, se rellena y se abre otra.
+        var columns: [[(String, String)?]] = []
+        var current: [(String, String)?] = []
+        for block in blocks {
+            if current.count + block.count > rows {
+                while current.count < rows { current.append(nil) }
+                columns.append(current)
+                current = []
+            }
+            current.append(contentsOf: block.map { Optional($0) })
+            if current.count == rows {
+                columns.append(current)
+                current = []
+            }
+        }
+        if !current.isEmpty {
+            while current.count < rows { current.append(nil) }
+            columns.append(current)
+        }
+
         if columns.isEmpty {
-            statusItem.button?.attributedTitle = Self.grid(columns: [[("Bto", "Stats")]])
+            statusItem.button?.attributedTitle = Self.grid(columns: [[("Bto", "Stats")]], rows: 1)
         } else {
-            statusItem.button?.attributedTitle = Self.grid(columns: columns)
+            statusItem.button?.attributedTitle = Self.grid(columns: columns, rows: rows)
         }
 
         if let cpu = store.cpu {
@@ -162,24 +208,30 @@ final class StatusItemController: NSObject {
         }
     }
 
-    /// Cuadrícula de N columnas × 2 filas para el status item.
-    /// Cada columna es [(label, valor) fila superior, (label, valor) fila inferior].
-    static func grid(columns: [[(String, String)]]) -> NSAttributedString {
+    /// Cuadrícula de N columnas × `rows` filas para el status item.
+    /// Celda nil = hueco de empaquetado: se rellena con espacios del ancho de la
+    /// celda de referencia de su columna para no desalinear las siguientes.
+    static func grid(columns: [[(String, String)?]], rows: Int) -> NSAttributedString {
+        let compact = rows >= 3
+        let lineHeight: CGFloat = compact ? 6.6 : 9
         let paragraph = NSMutableParagraphStyle()
-        paragraph.minimumLineHeight = 9
-        paragraph.maximumLineHeight = 9
+        paragraph.minimumLineHeight = lineHeight
+        paragraph.maximumLineHeight = lineHeight
         paragraph.alignment = .left
 
-        let labelFont = NSFont.monospacedSystemFont(ofSize: 6.5, weight: .semibold)
-        let valueFont = NSFont.monospacedSystemFont(ofSize: 8.5, weight: .medium)
-        let baseline: CGFloat = -3
+        let labelFont = NSFont.monospacedSystemFont(ofSize: compact ? 5 : 6.5, weight: .semibold)
+        let valueFont = NSFont.monospacedSystemFont(ofSize: compact ? 6.5 : 8.5, weight: .medium)
+        let baseline: CGFloat = compact ? -2 : -3
 
         let result = NSMutableAttributedString()
-        for row in 0..<2 {
+        for row in 0..<rows {
             let line = NSMutableAttributedString()
             for (columnIndex, column) in columns.enumerated() {
-                guard row < column.count else { continue }
-                let (label, value) = column[row]
+                let reference = column.compactMap { $0 }.first ?? ("", "")
+                let cell = row < column.count ? column[row] : nil
+                let (label, value) = cell
+                    ?? (String(repeating: " ", count: reference.0.count),
+                        String(repeating: " ", count: reference.1.count))
                 if columnIndex > 0 {
                     line.append(NSAttributedString(string: " ", attributes: [
                         .font: valueFont, .paragraphStyle: paragraph, .baselineOffset: baseline,
@@ -198,7 +250,7 @@ final class StatusItemController: NSObject {
                     .baselineOffset: baseline,
                 ]))
             }
-            if row == 0 {
+            if row < rows - 1 {
                 line.append(NSAttributedString(string: "\n", attributes: [.paragraphStyle: paragraph]))
             }
             result.append(line)

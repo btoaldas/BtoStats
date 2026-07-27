@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var order: [MetricID] = AppConfig.shared.metricOrder
     @State private var disabled: Set<MetricID> = AppConfig.shared.disabledMetrics
     @State private var interval: Double = AppConfig.shared.fastInterval
+    @State private var rows: Int = AppConfig.shared.gridRows
     @State private var launchAtLogin: Bool = SMAppService.mainApp.status == .enabled
     @State private var launchError: String?
 
@@ -34,6 +35,16 @@ struct SettingsView: View {
             .frame(height: 210)
 
             Divider()
+
+            Picker("Filas de la cuadrícula", selection: $rows) {
+                Text("2 (normal)").tag(2)
+                Text("3 (letra más pequeña)").tag(3)
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: rows) { _, newValue in
+                AppConfig.shared.gridRows = newValue
+                AppConfig.shared.notifyChanged()
+            }
 
             HStack {
                 Text("Refresco")

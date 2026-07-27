@@ -47,6 +47,21 @@ if CommandLine.arguments.contains("--sample") {
     exit(0)
 }
 
+// Modo verificación de top procesos: BtoStats --top
+if CommandLine.arguments.contains("--top") {
+    let reader = ProcessReader()
+    _ = reader.read() // baseline para los deltas de red
+    Thread.sleep(forTimeInterval: 3.0)
+    let snapshot = reader.read()
+    print("TOP CPU:")
+    for p in snapshot.topCPU { print(String(format: "  %6d  %5.1f%%  %@", p.pid, p.value, p.name)) }
+    print("TOP RAM:")
+    for p in snapshot.topRAM { print(String(format: "  %6d  %8.0f MB  %@", p.pid, p.value / 1048576, p.name)) }
+    print("TOP RED (B/s, delta 3 s):")
+    for p in snapshot.topNetwork { print(String(format: "  %6d  %10.0f  %@", p.pid, p.value, p.name)) }
+    exit(0)
+}
+
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate

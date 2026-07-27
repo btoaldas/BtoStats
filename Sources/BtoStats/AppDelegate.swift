@@ -21,6 +21,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.statusController?.render()
         }
         startSampling()
+
+        // Modo de prueba: abre el panel anclado a los 2 s (verificación sin UI manual).
+        if ProcessInfo.processInfo.environment["BTOSTATS_TEST_PANEL"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                guard let self, let controller = self.statusController else { return }
+                controller.panelController.pinned = true
+                controller.panelController.toggle(relativeTo: nil, store: self.store)
+            }
+        }
     }
 
     private func startSampling() {
@@ -38,6 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.store.updateFast(cpu: cpu, memory: memory, network: network,
                                           gpu: gpu, sensors: sensors)
                     self.statusController?.render()
+                    self.statusController?.panelController.refresh(from: self.store)
                 }
             },
             slow: { [weak self] in

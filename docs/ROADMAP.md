@@ -35,11 +35,16 @@ reproducible antes de darse por cerrada.
 - [x] Launch at login (SMAppService) — toggle listo; activo cuando la app esté
       empaquetada como .app (fase 6). Deshabilitado con nota mientras tanto.
 
-## Fase 4 — Panel grande
+## Fase 4 — Panel grande ✅
 
-- [ ] Clic → NSPanel flotante (no popover) con SwiftUI + Swift Charts, gráficos en vivo y KPIs.
-- [ ] Top procesos por CPU (`ps`, ~30 ms) y RAM (`top`, ~750 ms → cadencia 5 s).
-- [ ] Top procesos por red (`nettop -n` obligatorio; luego NetworkStatistics.framework).
+- [x] Clic izquierdo → NSPanel flotante nonactivating (menú de detalle pasa a clic
+      derecho). Cierra al perder foco; `pinned` para anclarlo (modo prueba).
+- [x] SwiftUI + Swift Charts: 6 KPIs y 2 gráficos en vivo (CPU·GPU·RAM %, red ↑↓)
+      sobre el histórico de 5 min del MetricStore.
+- [x] Top procesos por CPU (`ps`), RAM (`top`, 5 s solo con panel abierto) y red
+      (`nettop -n`, B/s por deltas; deltas negativos por sockets cerrados se
+      descartan; hijos propios excluidos por ppid).
+- [x] Modo `--top` para verificación por terminal.
 
 ## Fase 5 — Acciones
 

@@ -3,7 +3,7 @@ import Foundation
 /// Identificador de cada métrica mostrable en la cuadrícula.
 /// Las celdas activas se emparejan de a dos por columna, en el orden configurado.
 enum MetricID: String, CaseIterable, Identifiable {
-    case cpu, memory, gpu, temperature, networkUp, networkDown, diskFree, diskTotal
+    case cpu, memory, gpu, temperature, network, diskFree, diskTotal
 
     var id: String { rawValue }
 
@@ -13,8 +13,7 @@ enum MetricID: String, CaseIterable, Identifiable {
         case .memory: return "RAM %"
         case .gpu: return "GPU %"
         case .temperature: return "Temperatura CPU"
-        case .networkUp: return "Red ↑"
-        case .networkDown: return "Red ↓"
+        case .network: return "Red ↑↓ (bloque)"
         case .diskFree: return "Disco disponible"
         case .diskTotal: return "Disco total"
         }
@@ -26,8 +25,7 @@ enum MetricID: String, CaseIterable, Identifiable {
         case .memory: return "MEM"
         case .gpu: return "GPU"
         case .temperature: return "TMP"
-        case .networkUp: return "↑"
-        case .networkDown: return "↓"
+        case .network: return "↑↓"
         case .diskFree: return "D"
         case .diskTotal: return " "
         }
@@ -46,12 +44,21 @@ final class AppConfig {
         static let metricOrder = "metricOrder"
         static let disabledMetrics = "disabledMetrics"
         static let fastInterval = "fastInterval"
+        static let gridRows = "gridRows"
+    }
+
+    /// Migración de configs previas: networkUp/networkDown eran métricas sueltas
+    /// y ahora son el bloque único "network".
+    private static func migrate(_ raw: [String]) -> [String] {
+        var seen = Set<String>()
+        return raw.map { $0 == "networkUp" || $0 == "networkDown" ? "network" : $0 }
+                  .filter { seen.insert($0).inserted }
     }
 
     /// Orden de las celdas; las no listadas (métricas nuevas tras actualizar) van al final.
     var metricOrder: [MetricID] {
         get {
-            let stored = (defaults.stringArray(forKey: Key.metricOrder) ?? [])
+            let stored = Self.migrate(defaults.stringArray(forKey: Key.metricOrder) ?? [])
                 .compactMap(MetricID.init(rawValue:))
             let missing = MetricID.allCases.filter { !stored.contains($0) }
             return stored + missing
@@ -61,7 +68,7 @@ final class AppConfig {
 
     var disabledMetrics: Set<MetricID> {
         get {
-            Set((defaults.stringArray(forKey: Key.disabledMetrics) ?? [])
+            Set(Self.migrate(defaults.stringArray(forKey: Key.disabledMetrics) ?? [])
                 .compactMap(MetricID.init(rawValue:)))
         }
         set { defaults.set(newValue.map(\.rawValue).sorted(), forKey: Key.disabledMetrics) }
@@ -78,6 +85,15 @@ final class AppConfig {
             return value == 0 ? 1.0 : min(max(value, 1.0), 5.0)
         }
         set { defaults.set(min(max(newValue, 1.0), 5.0), forKey: Key.fastInterval) }
+    }
+
+    /// Filas de la cuadrícula (2 por defecto; 3 con letra más pequeña).
+    var gridRows: Int {
+        get {
+            let value = defaults.integer(forKey: Key.gridRows)
+            return value == 0 ? 2 : min(max(value, 2), 3)
+        }
+        set { defaults.set(min(max(newValue, 2), 3), forKey: Key.gridRows) }
     }
 
     func setEnabled(_ metric: MetricID, _ enabled: Bool) {
