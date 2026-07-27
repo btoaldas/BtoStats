@@ -87,6 +87,100 @@ if runningCopies.count > 1 {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--guard-test") {
+    func fake(_ pct: Int, charging: Bool) -> BatteryReader.Snapshot {
+        BatteryReader.Snapshot(percentage: pct, isCharging: charging, timeRemainingMinutes: nil,
+                               cycleCount: 0, healthPercent: 100, watts: 0, temperatureC: nil)
+    }
+    print("guard activo: \(AppConfig.shared.resourceGuardEnabled)")
+    print("bateria 100% cargando  -> x\(ResourceGuard.intervalMultiplier(battery: fake(100, charging: true))) [\(ResourceGuard.statusText(battery: fake(100, charging: true)))]")
+    print("bateria 50% sin cargar -> x\(ResourceGuard.intervalMultiplier(battery: fake(50, charging: false))) [\(ResourceGuard.statusText(battery: fake(50, charging: false)))]")
+    print("bateria 18% sin cargar -> x\(ResourceGuard.intervalMultiplier(battery: fake(18, charging: false))) [\(ResourceGuard.statusText(battery: fake(18, charging: false)))]")
+    print("bateria 8%  sin cargar -> x\(ResourceGuard.intervalMultiplier(battery: fake(8, charging: false))) [\(ResourceGuard.statusText(battery: fake(8, charging: false)))]")
+    print("saltar readers caros al 8%: \(ResourceGuard.shouldSkipExpensiveReaders(battery: fake(8, charging: false)))")
+    print("presion de memoria actual: \(MemoryAdvisor.currentPressure().map { "\($0)" } ?? "?")")
+    exit(0)
+}
+
+if CommandLine.arguments.contains("--history-limits-test") {
+    let d = UserDefaults(suiteName: "ec.bto.BtoStats")!
+    d.set(true, forKey: "historyEnabled")
+    // política agresiva: tope 0.1 MB, sin retención por tiempo, todo fino
+    d.set(0, forKey: "history.retentionDays")
+    d.set(0.1, forKey: "history.maxSizeMB")
+    d.set(3650, forKey: "history.fineDetailDays")
+    d.set(99999.0, forKey: "history.minFreeDiskGB") // fuerza "sin espacio"
+
+    let h = HistoryStore()
+    h.deleteAll()
+    let now = Date().timeIntervalSince1970
+    // 10000 muestras = 400 KB, tope 100 KB -> debe quedar en ~2500
+    var data = Data()
+    for i in 0..<10000 {
+        var arr = [now - Double(i) * 60, 0.5, 0.5, 50.0, 50.0]
+        data.append(Data(bytes: &arr, count: 40))
+    }
+    try? data.write(to: h.fileURL)
+    print(String(format: "antes del tope: %d muestras (%.0f KB)", h.sampleCount, Double(h.sizeBytes)/1024))
+    h.maintain(now: now)
+    print(String(format: "tras tope de 0.1 MB: %d muestras (%.0f KB) — esperado <= 2500", h.sampleCount, Double(h.sizeBytes)/1024))
+
+    // guard de espacio: con minFreeDiskGB absurdo NO debe escribir
+    let sizeBefore = h.sizeBytes
+    h.recordIfDue(cpu: 0.9, ram: 0.9, gpu: 90, temp: 90, now: now + 1000)
+    let sizeAfter = h.sizeBytes
+    print("guard de disco: escribió=\(sizeAfter != sizeBefore) (esperado false), pausado=\(h.isPausedForDiskSpace)")
+
+    // restaurar y limpiar
+    for k in ["history.retentionDays","history.maxSizeMB","history.fineDetailDays","history.minFreeDiskGB","historyEnabled"] { d.removeObject(forKey: k) }
+    h.deleteAll()
+    exit(0)
+}
+
+if CommandLine.arguments.contains("--history-policy-test") {
+    let d = UserDefaults(suiteName: "ec.bto.BtoStats")!
+    d.set(true, forKey: "historyEnabled")
+    let h = HistoryStore()
+    h.deleteAll()
+
+    // Simular 120 días de datos a 1 muestra/min (lo que ocuparía sin política)
+    let now = Date().timeIntervalSince1970
+    var samples: [(Double, Double)] = []
+    for day in 0..<120 {
+        for minute in stride(from: 0, to: 1440, by: 1) {
+            samples.append((now - Double(day) * 86400 - Double(minute) * 60, Double(minute % 100) / 100))
+        }
+    }
+    // escribir directo al archivo (rápido)
+    var data = Data()
+    for (ts, v) in samples.sorted(by: { $0.0 < $1.0 }) {
+        var arr = [ts, v, 0.5, v * 100, 50.0]
+        data.append(Data(bytes: &arr, count: 40))
+    }
+    try? data.write(to: h.fileURL)
+    let before = h.sizeBytes
+    print(String(format: "ANTES: %d muestras, %.2f MB (120 días a 1/min)", h.sampleCount, Double(before)/1e6))
+
+    // aplicar política por defecto (retención 90d, fino 7d, tope 20MB)
+    h.maintain(now: now)
+    let after = h.sizeBytes
+    print(String(format: "DESPUÉS: %d muestras, %.2f MB (reducción %.0f%%)",
+                 h.sampleCount, Double(after)/1e6, (1 - Double(after)/Double(before)) * 100))
+
+    // verificar que los datos recientes siguen finos y los viejos compactados
+    let recent = h.load(sinceSeconds: 3600, now: now)
+    let old = h.load(sinceSeconds: 86400 * 60, now: now).filter { now - $0.timestamp > 86400 * 30 }
+    print("última hora (fino, esperado ~60): \(recent.count) muestras")
+    print("día 30-60 (compactado, esperado ~24/día): \(old.count) muestras en 30 días = \(old.count/30)/día")
+    // retención: nada más viejo que 90 días
+    let oldest = h.load(sinceSeconds: 86400 * 999, now: now).map { (now - $0.timestamp) / 86400 }.max() ?? 0
+    print(String(format: "muestra más vieja: %.0f días (política: 90)", oldest))
+    print(String(format: "proyección anual con esta política: %.2f MB",
+                 Double(HistoryStore.projectedYearlyBytes(AppConfig.shared.historyPolicy))/1e6))
+    h.deleteAll()
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--alert-test") {
     // dispara una notificación de prueba y reporta el estado del permiso
     let center = UNUserNotificationCenter.current()

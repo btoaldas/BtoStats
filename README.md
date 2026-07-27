@@ -50,6 +50,11 @@ mantener la app liviana — 0.4 % de CPU con todo OFF):
   día, semana y mes.
 - **Mini-gráfica de CPU** en la barra y **widget XXL** con energía.
 
+**Cuidado de recursos** (activo por defecto): la app reduce su actividad si la
+batería está baja o la memoria bajo presión; el histórico tiene retención y
+tope de tamaño configurables, se compacta solo (una muestra por hora tras la
+primera semana) y deja de escribir si el disco baja de 2 GB libres.
+
 ## Técnica (sin sudo, verificado empíricamente)
 
 | Métrica | Fuente |

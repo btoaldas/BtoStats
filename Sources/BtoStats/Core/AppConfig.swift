@@ -182,10 +182,40 @@ final class AppConfig {
         set { defaults.set(newValue, forKey: "dynamicColors") }
     }
 
+    /// Auto-limitación de recursos (ON por defecto: es protección, no feature).
+    /// Baja la cadencia con batería baja o memoria crítica.
+    var resourceGuardEnabled: Bool {
+        get { defaults.object(forKey: "resourceGuard") == nil ? true : defaults.bool(forKey: "resourceGuard") }
+        set { defaults.set(newValue, forKey: "resourceGuard") }
+    }
+
     /// Histórico persistente en disco para gráficas de día/mes (OFF por defecto).
     var historyEnabled: Bool {
         get { defaults.bool(forKey: "historyEnabled") }
         set { defaults.set(newValue, forKey: "historyEnabled") }
+    }
+
+    /// Política de recursos del histórico (retención, tope de tamaño,
+    /// compactación y espacio libre mínimo). Todo parametrizable.
+    var historyPolicy: HistoryStore.Policy {
+        get {
+            let d = HistoryStore.Policy.default
+            return HistoryStore.Policy(
+                retentionDays: defaults.object(forKey: "history.retentionDays") != nil
+                    ? defaults.integer(forKey: "history.retentionDays") : d.retentionDays,
+                maxSizeMB: defaults.object(forKey: "history.maxSizeMB") != nil
+                    ? defaults.double(forKey: "history.maxSizeMB") : d.maxSizeMB,
+                fineDetailDays: defaults.object(forKey: "history.fineDetailDays") != nil
+                    ? defaults.integer(forKey: "history.fineDetailDays") : d.fineDetailDays,
+                minFreeDiskGB: defaults.object(forKey: "history.minFreeDiskGB") != nil
+                    ? defaults.double(forKey: "history.minFreeDiskGB") : d.minFreeDiskGB)
+        }
+        set {
+            defaults.set(newValue.retentionDays, forKey: "history.retentionDays")
+            defaults.set(newValue.maxSizeMB, forKey: "history.maxSizeMB")
+            defaults.set(newValue.fineDetailDays, forKey: "history.fineDetailDays")
+            defaults.set(newValue.minFreeDiskGB, forKey: "history.minFreeDiskGB")
+        }
     }
 
     /// Mini-gráficas (sparklines) junto a los números en la barra (OFF por defecto).

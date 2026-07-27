@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         startSampling()
         alertMonitor.requestAuthorizationIfNeeded()
-        history.prune(now: Date().timeIntervalSince1970)
+        history.maintain(now: Date().timeIntervalSince1970)
 
         // Modo de prueba: abre Preferencias a los 2 s (capturas del manual).
         if ProcessInfo.processInfo.environment["BTOSTATS_TEST_SETTINGS"] != nil {
@@ -73,7 +73,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // los readers caros: se leen cada 2 ticks. Temp/GPU no cambian
                 // de forma perceptible en 1 s; baja el consumo base a la mitad.
                 self.tickCounter += 1
-                if self.tickCounter % 2 == 0 {
+                // Auto-limitación: con batería baja o memoria crítica se espacian
+                // los readers caros (y el propio tick, vía guardMultiplier).
+                let guardMultiplier = Int(ResourceGuard.intervalMultiplier(battery: self.lastBattery))
+                let expensiveEvery = 2 * guardMultiplier
+                if self.tickCounter % expensiveEvery == 0 {
                     self.lastGPU = self.gpuReader.read()
                     self.lastSensors = self.sensorsReader.read()
                     self.lastSystem = self.systemReader.read()

@@ -31,6 +31,7 @@ struct AdvancedPanelView: View {
                     }
                 }
                 section("Sistema") {
+                    row("Modo de recursos de BtoStats", model.resourceMode)
                     row("Encendido hace", uptimeText)
                     row("Carga (1·5·15 min)", String(format: "%.2f · %.2f · %.2f",
                         model.loadAverage.0, model.loadAverage.1, model.loadAverage.2))

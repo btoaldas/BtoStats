@@ -80,6 +80,22 @@ En **el panel → Avanzadas** ves: histórico de día/semana/mes, energía en wa
 procesos), batería (salud, ciclos), Wi-Fi detallado, disco I/O, Bluetooth y
 detalle de memoria (swap y comprimida).
 
+## Cuidado de tu equipo
+
+BtoStats está hecho para no estorbar:
+
+- **Auto-limitación** (activa por defecto): si la batería baja del 20 % sin
+  cargador, o la memoria entra en presión crítica, la app espacia sus lecturas
+  automáticamente (y al 10 % pausa las más costosas).
+- **Histórico acotado**: eliges cuánto conservar (7 días a 1 año, o siempre) y
+  el espacio máximo (5–200 MB). Los datos de más de una semana se compactan a
+  una muestra por hora, así que ocupan ~60 veces menos. Con la configuración
+  por defecto, **un año ocupa menos de 1 MB**.
+- **Nunca llena el disco**: si el volumen baja de 2 GB libres, deja de escribir
+  el histórico automáticamente.
+- En Preferencias → Avanzadas ves cuánto ocupa ahora y puedes borrarlo con un
+  botón.
+
 ## Preguntas frecuentes
 
 **¿Por qué no pide contraseña ni permisos?** Todo se lee con APIs sin

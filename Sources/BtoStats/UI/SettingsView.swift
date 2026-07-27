@@ -22,6 +22,10 @@ struct SettingsView: View {
     @State private var alertsEnabled: Bool = AppConfig.shared.alertsEnabled
     @State private var sparklines: Bool = AppConfig.shared.barSparklinesEnabled
     @State private var historyOn: Bool = AppConfig.shared.historyEnabled
+    @State private var retentionDays: Int = AppConfig.shared.historyPolicy.retentionDays
+    @State private var maxSizeMB: Double = AppConfig.shared.historyPolicy.maxSizeMB
+    @State private var historySizeText: String = "—"
+    @State private var resourceGuard: Bool = AppConfig.shared.resourceGuardEnabled
     @State private var cpuWarn: Double = AppConfig.shared.threshold(.cpu, .warning) * 100
     @State private var cpuCrit: Double = AppConfig.shared.threshold(.cpu, .critical) * 100
     @State private var tempWarn: Double = AppConfig.shared.threshold(.temperature, .warning)
@@ -130,6 +134,16 @@ struct SettingsView: View {
     private var advancedTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                Text("Protección de recursos").font(.headline)
+                Toggle("Reducir la actividad con batería baja o memoria crítica", isOn: $resourceGuard)
+                    .onChange(of: resourceGuard) { _, v in
+                        AppConfig.shared.resourceGuardEnabled = v; AppConfig.shared.notifyChanged()
+                    }
+                Text("BtoStats espacia sus lecturas cuando el equipo está bajo presión, para no ser parte del problema. Recomendado dejarlo activo.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Divider()
+
                 Text("Extras opcionales").font(.headline)
                 Text("Estas funciones vienen apagadas para mantener la app liviana. Actívalas si las quieres.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -154,9 +168,53 @@ struct SettingsView: View {
                 Toggle("Histórico persistente (gráficas de día/semana/mes)", isOn: $historyOn)
                     .onChange(of: historyOn) { _, v in
                         AppConfig.shared.historyEnabled = v; AppConfig.shared.notifyChanged()
+                        refreshHistorySize()
                     }
-                Text("Guarda una muestra por minuto en disco para ver tendencias largas en el panel → Avanzadas.")
-                    .font(.caption).foregroundStyle(.secondary)
+                if historyOn {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker("Conservar datos", selection: $retentionDays) {
+                            Text("7 días").tag(7)
+                            Text("30 días").tag(30)
+                            Text("90 días").tag(90)
+                            Text("1 año").tag(365)
+                            Text("Siempre").tag(0)
+                        }
+                        .onChange(of: retentionDays) { _, v in
+                            var p = AppConfig.shared.historyPolicy
+                            p.retentionDays = v
+                            AppConfig.shared.historyPolicy = p
+                            applyMaintenance()
+                        }
+
+                        HStack {
+                            Text("Espacio máximo").frame(width: 110, alignment: .leading)
+                            Slider(value: $maxSizeMB, in: 5...200, step: 5) { editing in
+                                if !editing {
+                                    var p = AppConfig.shared.historyPolicy
+                                    p.maxSizeMB = maxSizeMB
+                                    AppConfig.shared.historyPolicy = p
+                                    applyMaintenance()
+                                }
+                            }
+                            Text("\(Int(maxSizeMB)) MB").monospacedDigit().frame(width: 56, alignment: .trailing)
+                        }
+
+                        HStack {
+                            Text("Ocupa ahora: \(historySizeText)")
+                                .font(.caption).foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Borrar histórico") {
+                                HistoryStore().deleteAll()
+                                refreshHistorySize()
+                            }
+                            .controlSize(.small)
+                        }
+
+                        Text("Los datos de más de una semana se compactan a una muestra por hora (ocupan ~60× menos). Se dejan de guardar si el disco baja de 2 GB libres. Con esta configuración, un año ocupa unos \(projectedText).")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.leading, 8)
+                }
 
                 Divider()
 
@@ -197,6 +255,7 @@ struct SettingsView: View {
                 if let helperError { Text(helperError).font(.caption).foregroundStyle(.red) }
             }
             .padding(20)
+            .onAppear { refreshHistorySize() }
         }
     }
 
@@ -209,6 +268,27 @@ struct SettingsView: View {
             Text("\(Int(value.wrappedValue)) \(unit)").monospacedDigit().frame(width: 54, alignment: .trailing)
         }
     }
+
+    private func refreshHistorySize() {
+        let store = HistoryStore()
+        let bytes = store.sizeBytes
+        historySizeText = bytes == 0 ? "vacío"
+            : String(format: "%.1f MB (%d muestras)", Double(bytes) / 1e6, store.sampleCount)
+    }
+
+    private var projectedText: String {
+        let bytes = HistoryStore.projectedYearlyBytes(AppConfig.shared.historyPolicy)
+        return String(format: "%.1f MB", Double(bytes) / 1e6)
+    }
+
+    private func applyMaintenance() {
+        DispatchQueue.global(qos: .utility).async {
+            HistoryStore().maintain(now: Date().timeIntervalSince1970)
+            DispatchQueue.main.async { refreshHistorySizeStatic() }
+        }
+    }
+
+    private func refreshHistorySizeStatic() { refreshHistorySize() }
 
     private func move(_ metric: MetricID, by offset: Int) {
         guard let index = order.firstIndex(of: metric) else { return }

@@ -64,6 +64,8 @@ final class PanelModel: ObservableObject {
     @Published var gpuWatts: Double? = nil
     @Published var aneWatts: Double? = nil
     @Published var cpuClusters: [(name: String, usage: Double)] = []
+    @Published var resourceMode: String = "normal"
+    @Published var historySizeMB: Double = 0
 
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
@@ -108,6 +110,7 @@ final class PanelModel: ObservableObject {
             diskReadBps = io.readBps
             diskWriteBps = io.writeBps
         }
+        resourceMode = ResourceGuard.statusText(battery: store.battery)
         if let bat = store.battery {
             batteryActive = true
             batteryPct = bat.percentage
