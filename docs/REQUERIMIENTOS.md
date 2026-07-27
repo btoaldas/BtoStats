@@ -1,4 +1,4 @@
-# BetoStats — Requerimientos
+# BtoStats — Requerimientos
 
 **Versión**: 1.0 · **Estado**: vigente
 

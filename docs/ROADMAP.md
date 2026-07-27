@@ -1,4 +1,4 @@
-# BetoStats — Roadmap
+# BtoStats — Roadmap
 
 Fases chicas; cada una termina compilada, instalada y probada con evidencia
 reproducible antes de darse por cerrada.

@@ -1,4 +1,4 @@
-# BetoStats — Arquitectura
+# BtoStats — Arquitectura
 
 Patrón inspirado en exelban/stats (licencia permisiva): cada métrica es un módulo con
 **Reader** (datos) desacoplado de **Widget** (celda en el status item) y **Popup**
@@ -70,7 +70,7 @@ Sampler(1 Hz) → CPUReader.read() ┐
 ## Estructura de archivos (meta)
 
 ```
-Sources/BetoStats/
+Sources/BtoStats/
   main.swift, AppDelegate.swift
   Core/     Sampler.swift, MetricStore.swift, AppConfig.swift
   Readers/  CPUReader.swift, MemoryReader.swift, NetworkReader.swift,

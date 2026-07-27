@@ -1,4 +1,4 @@
-# BetoStats — Viabilidad técnica
+# BtoStats — Viabilidad técnica
 
 Investigación técnica (julio 2026) contrastada con implementaciones open source
 (exelban/stats master, licencia permisiva) y documentación de Apple. Todo lo marcado **[V]** fue

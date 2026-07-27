@@ -5,7 +5,7 @@ import Foundation
 /// Los handlers corren EN la cola del sampler; publicar a main es
 /// responsabilidad del llamador.
 final class Sampler {
-    private let queue = DispatchQueue(label: "betostats.sampler", qos: .utility)
+    private let queue = DispatchQueue(label: "btostats.sampler", qos: .utility)
     private var fastTimer: DispatchSourceTimer?
     private var slowTimer: DispatchSourceTimer?
 

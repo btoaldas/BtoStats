@@ -37,7 +37,7 @@ final class StatusItemController {
                               action: #selector(NSApplication.terminate(_:)),
                               keyEquivalent: "")
         quit.isEnabled = true
-        let quitTitle = NSMutableAttributedString(string: "Salir de BetoStats", attributes: [
+        let quitTitle = NSMutableAttributedString(string: "Salir de BtoStats", attributes: [
             .font: NSFont.menuFont(ofSize: 0),
             .foregroundColor: NSColor.labelColor,
         ])

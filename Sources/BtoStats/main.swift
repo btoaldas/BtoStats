@@ -1,7 +1,7 @@
 import AppKit
 
 // Modo verificación: imprime muestras de todos los readers y sale.
-// Uso: BetoStats --sample [segundos]
+// Uso: BtoStats --sample [segundos]
 if CommandLine.arguments.contains("--sample") {
     let seconds = CommandLine.arguments.last.flatMap(Int.init) ?? 3
     let cpu = CPUReader()

@@ -1,4 +1,4 @@
-# BetoStats
+# BtoStats
 
 Monitor de sistema propio para la barra de menús de macOS (Apple Silicon).
 Una sola app que reemplaza los monitores sueltos de CPU, GPU, temperatura,
