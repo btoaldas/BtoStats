@@ -23,15 +23,38 @@ final class StatusItemController {
 
     private func buildMenu() {
         let menu = NSMenu()
-        menu.addItem(cpuMenuItem)
-        menu.addItem(memoryMenuItem)
-        menu.addItem(networkMenuItem)
-        menu.addItem(diskMenuItem)
+        menu.autoenablesItems = false
+        for item in [cpuMenuItem, memoryMenuItem, networkMenuItem, diskMenuItem] {
+            item.isEnabled = true
+            menu.addItem(item)
+        }
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Salir de BetoStats",
-                                action: #selector(NSApplication.terminate(_:)),
-                                keyEquivalent: "q"))
+        // El badge de atajo del sistema siempre se pinta tenue; se embebe "⌘Q"
+        // en el título para que salga en blanco pleno.
+        let quit = NSMenuItem(title: "",
+                              action: #selector(NSApplication.terminate(_:)),
+                              keyEquivalent: "")
+        quit.isEnabled = true
+        let quitTitle = NSMutableAttributedString(string: "Salir de BetoStats", attributes: [
+            .font: NSFont.menuFont(ofSize: 0),
+            .foregroundColor: NSColor.labelColor,
+        ])
+        quitTitle.append(NSAttributedString(string: "   ⌘Q", attributes: [
+            .font: NSFont.menuFont(ofSize: 0),
+            .foregroundColor: NSColor.labelColor,
+        ]))
+        quit.attributedTitle = quitTitle
+        menu.addItem(quit)
         statusItem.menu = menu
+    }
+
+    /// Título de ítem de detalle en blanco pleno (los ítems informativos sin
+    /// autoenables igual se pintan tenues si se usa title plano).
+    private static func detailTitle(_ text: String) -> NSAttributedString {
+        NSAttributedString(string: text, attributes: [
+            .font: NSFont.menuFont(ofSize: 0),
+            .foregroundColor: NSColor.labelColor,
+        ])
     }
 
     func render() {
@@ -46,25 +69,27 @@ final class StatusItemController {
         ]
         if let disk = store.disk {
             columns.append([("D", Self.bytes(disk.availableBytes)),
-                            ("", Self.bytes(disk.totalBytes))])
+                            (" ", Self.bytes(disk.totalBytes))])
         }
         statusItem.button?.attributedTitle = Self.grid(columns: columns)
 
         if let cpu = store.cpu {
-            cpuMenuItem.title = String(format: "CPU: %.1f%% (%d núcleos)",
-                                       cpu.totalUsage * 100, cpu.perCore.count)
+            cpuMenuItem.attributedTitle = Self.detailTitle(String(format: "CPU: %.1f%% (%d núcleos)",
+                                                                 cpu.totalUsage * 100, cpu.perCore.count))
         }
         if let memory = store.memory {
-            memoryMenuItem.title = String(format: "RAM: %.1f / %.0f GB (%.0f%%)",
-                                          memory.usedBytes / 1_073_741_824,
-                                          memory.totalBytes / 1_073_741_824,
-                                          memory.fractionUsed * 100)
+            memoryMenuItem.attributedTitle = Self.detailTitle(String(format: "RAM: %.1f / %.0f GB (%.0f%%)",
+                                                                     memory.usedBytes / 1_073_741_824,
+                                                                     memory.totalBytes / 1_073_741_824,
+                                                                     memory.fractionUsed * 100))
         }
         if let network = store.network {
-            networkMenuItem.title = "Red: ↑ \(Self.rate(network.uploadBps))/s   ↓ \(Self.rate(network.downloadBps))/s"
+            networkMenuItem.attributedTitle = Self.detailTitle(
+                "Red: ↑ \(Self.rate(network.uploadBps))/s   ↓ \(Self.rate(network.downloadBps))/s")
         }
         if let disk = store.disk {
-            diskMenuItem.title = "Disco: \(Self.bytes(disk.availableBytes)) disponibles de \(Self.bytes(disk.totalBytes)) (libre real \(Self.bytes(disk.freeBytes)))"
+            diskMenuItem.attributedTitle = Self.detailTitle(
+                "Disco: \(Self.bytes(disk.availableBytes)) disponibles de \(Self.bytes(disk.totalBytes)) (libre real \(Self.bytes(disk.freeBytes)))")
         }
     }
 
@@ -72,10 +97,10 @@ final class StatusItemController {
     static func rate(_ bps: Double) -> String {
         let value = max(bps, 0)
         switch value {
-        case ..<1000: return String(format: "%4.0fB", value)
-        case ..<999_500: return String(format: "%4.0fK", value / 1000)
-        case ..<999_500_000: return String(format: "%4.1fM", value / 1_000_000)
-        default: return String(format: "%4.1fG", value / 1_000_000_000)
+        case ..<1000: return String(format: "%3.0fB", value)
+        case ..<999_500: return String(format: "%3.0fK", value / 1000)
+        case ..<999_500_000: return String(format: "%3.1fM", value / 1_000_000)
+        default: return String(format: "%3.1fG", value / 1_000_000_000)
         }
     }
 
@@ -83,9 +108,9 @@ final class StatusItemController {
     static func bytes(_ bytes: UInt64) -> String {
         let value = Double(bytes)
         switch value {
-        case ..<999_500_000: return String(format: "%.0fM", value / 1_000_000)
-        case ..<999_500_000_000: return String(format: "%.0fG", value / 1_000_000_000)
-        default: return String(format: "%.2fT", value / 1_000_000_000_000)
+        case ..<999_500_000: return String(format: "%4.0fM", value / 1_000_000)
+        case ..<999_500_000_000: return String(format: "%4.0fG", value / 1_000_000_000)
+        default: return String(format: "%4.2fT", value / 1_000_000_000_000)
         }
     }
 
@@ -93,12 +118,13 @@ final class StatusItemController {
     /// Cada columna es [(label, valor) fila superior, (label, valor) fila inferior].
     static func grid(columns: [[(String, String)]]) -> NSAttributedString {
         let paragraph = NSMutableParagraphStyle()
-        paragraph.minimumLineHeight = 10
-        paragraph.maximumLineHeight = 10
+        paragraph.minimumLineHeight = 9
+        paragraph.maximumLineHeight = 9
         paragraph.alignment = .left
 
-        let labelFont = NSFont.monospacedSystemFont(ofSize: 7, weight: .semibold)
-        let valueFont = NSFont.monospacedSystemFont(ofSize: 9, weight: .medium)
+        let labelFont = NSFont.monospacedSystemFont(ofSize: 6.5, weight: .semibold)
+        let valueFont = NSFont.monospacedSystemFont(ofSize: 8.5, weight: .medium)
+        let baseline: CGFloat = -3
 
         let result = NSMutableAttributedString()
         for row in 0..<2 {
@@ -107,21 +133,21 @@ final class StatusItemController {
                 guard row < column.count else { continue }
                 let (label, value) = column[row]
                 if columnIndex > 0 {
-                    line.append(NSAttributedString(string: "  ", attributes: [
-                        .font: valueFont, .paragraphStyle: paragraph,
+                    line.append(NSAttributedString(string: " ", attributes: [
+                        .font: valueFont, .paragraphStyle: paragraph, .baselineOffset: baseline,
                     ]))
                 }
-                if !label.isEmpty {
-                    line.append(NSAttributedString(string: label + " ", attributes: [
-                        .font: labelFont,
-                        .foregroundColor: NSColor.labelColor,
-                        .paragraphStyle: paragraph,
-                    ]))
-                }
+                line.append(NSAttributedString(string: label + " ", attributes: [
+                    .font: labelFont,
+                    .foregroundColor: NSColor.labelColor,
+                    .paragraphStyle: paragraph,
+                    .baselineOffset: baseline,
+                ]))
                 line.append(NSAttributedString(string: value, attributes: [
                     .font: valueFont,
                     .foregroundColor: NSColor.labelColor,
                     .paragraphStyle: paragraph,
+                    .baselineOffset: baseline,
                 ]))
             }
             if row == 0 {
