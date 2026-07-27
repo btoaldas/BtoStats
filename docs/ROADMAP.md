@@ -99,8 +99,16 @@ operaciones cerradas, jamás un shell privilegiado — ver VIABILIDAD §4).
 - [x] Instancia única (evita íconos duplicados dev vs .app).
 - [x] Empaquetado con helper embebido + LaunchDaemon plist; firma en orden.
 
-## Fase 9 — Release final e instalación
+## Fase 9 — Release final e instalación ✅
 
-- [ ] Review de seguridad del helper (gate) — en curso.
-- [ ] Instalar BtoStats.app en /Applications (a pedido de Alberto).
-- [ ] Release v1.0.0.
+- [x] Review de seguridad del helper (gate superado; correcciones en VIABILIDAD §7).
+- [x] Instalar BtoStats.app en /Applications; instancia única verificada.
+- [x] Release v1.0.0.
+
+## Backlog (post-1.0, cuando pique el gusanillo)
+
+- Widget para la galería nativa "Editar widgets" (WidgetKit, versión lenta).
+- Consumo de energía en watts (vía helper / IOReport).
+- Histórico de día/mes en gráficas (persistencia a disco).
+- Ancho de banda del enlace Ethernet (hoy solo Wi-Fi).
+- Sparklines opcionales en el status item.
