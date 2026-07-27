@@ -10,6 +10,13 @@ struct AdvancedPanelView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                if model.cpuWatts != nil || model.gpuWatts != nil {
+                    section("Energía (watts en vivo)") {
+                        row("CPU", model.cpuWatts.map { String(format: "%.1f W", $0) } ?? "—")
+                        row("GPU", model.gpuWatts.map { String(format: "%.1f W", $0) } ?? "—")
+                        row("Neural Engine (ANE)", model.aneWatts.map { String(format: "%.1f W", $0) } ?? "—")
+                    }
+                }
                 section("Sistema") {
                     row("Encendido hace", uptimeText)
                     row("Carga (1·5·15 min)", String(format: "%.2f · %.2f · %.2f",

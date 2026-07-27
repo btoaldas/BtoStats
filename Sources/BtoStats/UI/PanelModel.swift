@@ -60,6 +60,9 @@ final class PanelModel: ObservableObject {
     @Published var diskReadBps: Double = 0
     @Published var diskWriteBps: Double = 0
     @Published var bluetooth: [(name: String, pct: Int)] = []
+    @Published var cpuWatts: Double? = nil
+    @Published var gpuWatts: Double? = nil
+    @Published var aneWatts: Double? = nil
 
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
@@ -96,6 +99,9 @@ final class PanelModel: ObservableObject {
             diskTotal = disk.totalBytes
         }
         bluetooth = store.bluetooth.map { (name: $0.name, pct: $0.batteryPercent) }
+        if let p = store.power {
+            cpuWatts = p.cpuWatts; gpuWatts = p.gpuWatts; aneWatts = p.aneWatts
+        }
         if let io = store.diskIO {
             diskReadBps = io.readBps
             diskWriteBps = io.writeBps

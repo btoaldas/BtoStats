@@ -17,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let batteryReader = BatteryReader()
     private let diskIOReader = DiskIOReader()
     private let bluetoothReader = BluetoothReader()
+    private let powerReader = PowerReader()
+    private var lastPower: PowerReader.Snapshot?
     private var lastSystem: SystemReader.Snapshot?
     private var lastWiFi: WiFiReader.Snapshot?
     private var lastBattery: BatteryReader.Snapshot?
@@ -75,6 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.lastSystem = self.systemReader.read()
                     self.lastWiFi = self.wifiReader.read()
                     self.lastBattery = self.batteryReader.read()
+                    self.lastPower = self.powerReader.read()
                 }
                 let gpu = self.lastGPU
                 let sensors = self.lastSensors
@@ -86,6 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.store.updateWiFi(self.lastWiFi)
                     self.store.updateBattery(self.lastBattery)
                     self.store.updateDiskIO(diskIO)
+                    self.store.updatePower(self.lastPower)
                     self.statusController?.render()
                     self.statusController?.panelController.refresh(from: self.store)
                     // sync (no solo refresh): permite activar/desactivar/redimensionar

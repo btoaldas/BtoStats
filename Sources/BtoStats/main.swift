@@ -86,6 +86,24 @@ if runningCopies.count > 1 {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--power") {
+    let r = PowerReader()
+    _ = r.read()
+    Thread.sleep(forTimeInterval: 1.0)
+    if let p = r.read() {
+        func f(_ w: Double?) -> String { w.map { String(format: "%.2f W", $0) } ?? "—" }
+        print("CPU: \(f(p.cpuWatts))  GPU: \(f(p.gpuWatts))  ANE: \(f(p.aneWatts))")
+    } else { print("IOReport sin datos") }
+    exit(0)
+}
+
+if CommandLine.arguments.contains("--power-debug") {
+    // volcar todos los canales de Energy Model para ver los nombres reales
+    let r = PowerReader()
+    _ = r.read(); Thread.sleep(forTimeInterval: 1.0); _ = r.read()
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--bluetooth") {
     let devices = BluetoothReader().read()
     if devices.isEmpty { print("sin dispositivos BT con batería") }

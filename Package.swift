@@ -9,11 +9,17 @@ let package = Package(
             name: "BtoStatsHelperShared",
             path: "Sources/BtoStatsHelperShared"
         ),
+        .target(
+            name: "CIOReport",
+            path: "Sources/CIOReport"
+        ),
         .executableTarget(
             name: "BtoStats",
-            dependencies: ["BtoStatsHelperShared"],
+            dependencies: ["BtoStatsHelperShared", "CIOReport"],
             path: "Sources/BtoStats",
-            linkerSettings: [.linkedFramework("CoreWLAN")]
+            linkerSettings: [.linkedFramework("CoreWLAN"),
+                             .linkedFramework("IOKit"),
+                             .unsafeFlags(["-lIOReport"])]
         ),
         .executableTarget(
             name: "BtoStatsHelper",
