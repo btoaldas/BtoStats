@@ -41,7 +41,7 @@ final class PanelController: NSObject, NSWindowDelegate {
             newPanel.titleVisibility = .visible
             newPanel.isMovableByWindowBackground = true
             newPanel.level = .floating
-            newPanel.becomesKeyOnlyIfNeeded = true
+            newPanel.becomesKeyOnlyIfNeeded = false
             newPanel.isReleasedWhenClosed = false
             // canJoinAllSpaces (no moveToActiveSpace): tras un orderOut,
             // moveToActiveSpace deja la ventana asignada a un Space viejo y el
@@ -53,10 +53,12 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
         model.refresh(from: store)
         position(relativeTo: button)
-        // Sin activar la app ni pedir key: orderFrontRegardless muestra el
-        // panel SIEMPRE (con la app inactiva makeKeyAndOrderFront podía no
-        // mostrarlo — el bug de "hay que abrir Preferencias primero"). El
-        // cierre por clic-fuera lo hace el monitor global, no el foco.
+        // El combo completo es el ÚNICO que muestra el panel de forma fiable
+        // en macOS 26 (multi-pantalla/Spaces): activar la app + hacer key +
+        // forzar el orden. orderFrontRegardless solo NO basta, y sin activar
+        // la app makeKeyAndOrderFront tampoco (verificado empíricamente).
+        NSApp.activate(ignoringOtherApps: true)
+        panel?.makeKeyAndOrderFront(nil)
         panel?.orderFrontRegardless()
         startClickOutsideMonitor()
         startProcessSampling()
