@@ -55,7 +55,7 @@ final class AppConfig {
     }
 
     enum DesktopWidgetSize: String, CaseIterable, Identifiable {
-        case s, m, l, xl
+        case s, m, l, xl, xxl
         var id: String { rawValue }
         var displayName: String {
             switch self {
@@ -63,6 +63,7 @@ final class AppConfig {
             case .m: return "M (4 anillos)"
             case .l: return "L (6 métricas)"
             case .xl: return "XL (con gráfico)"
+            case .xxl: return "XXL (todo + energía)"
             }
         }
     }

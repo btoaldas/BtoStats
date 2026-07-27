@@ -19,6 +19,8 @@ final class DesktopWidgetModel: ObservableObject {
     @Published var windowCapacity: Int = 300
     @Published var diskTotalText: String = "—"
     @Published var visibleMetrics: [MetricID] = []
+    @Published var cpuWatts: Double? = nil
+    @Published var gpuWatts: Double? = nil
 
     func refresh(from store: MetricStore) {
         if let cpuSnapshot = store.cpu { cpu = cpuSnapshot.totalUsage }
@@ -31,6 +33,8 @@ final class DesktopWidgetModel: ObservableObject {
             diskTotalText = StatusItemController.bytes(diskSnapshot.totalBytes)
         }
         visibleMetrics = AppConfig.shared.visibleMetrics
+        cpuWatts = store.power?.cpuWatts
+        gpuWatts = store.power?.gpuWatts
         cpuTemp = store.sensors?.cpuTempAvg
         if let network = store.network {
             uploadBps = network.uploadBps
@@ -99,7 +103,7 @@ struct DesktopWidgetView: View {
         case .s: return 1
         case .m: return 4
         case .l: return 6
-        case .xl: return 8
+        case .xl, .xxl: return 8
         }
     }
 
@@ -120,8 +124,16 @@ struct DesktopWidgetView: View {
                         tile(for: metric, diameter: 78)
                     }
                 }
-                if size == .xl {
+                if size == .xl || size == .xxl {
                     historyChart
+                }
+                if size == .xxl, model.cpuWatts != nil {
+                    HStack(spacing: 16) {
+                        wattLabel("CPU", model.cpuWatts)
+                        wattLabel("GPU", model.gpuWatts)
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.85))
                 }
             }
         }
@@ -155,6 +167,10 @@ struct DesktopWidgetView: View {
         case .diskTotal:
             EmptyView() // filtrado arriba: no aplica al widget
         }
+    }
+
+    private func wattLabel(_ name: String, _ w: Double?) -> some View {
+        Text("\(name) \(w.map { String(format: "%.1fW", $0) } ?? "—")").monospacedDigit()
     }
 
     private var networkCell: some View {
