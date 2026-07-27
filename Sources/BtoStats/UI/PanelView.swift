@@ -12,6 +12,17 @@ struct PanelView: View {
     @State private var windowSeconds: Int = AppConfig.shared.chartWindowSeconds
 
     var body: some View {
+        TabView {
+            monitorTab
+                .tabItem { Label("Monitor", systemImage: "chart.line.uptrend.xyaxis") }
+            AdvancedPanelView(model: model, scale: scale)
+                .tabItem { Label("Avanzadas", systemImage: "slider.horizontal.3") }
+        }
+        .frame(width: 820 * scale)
+        .padding(.top, 6)
+    }
+
+    private var monitorTab: some View {
         VStack(alignment: .leading, spacing: 12 * scale) {
             controlBar
             kpiRow
@@ -24,7 +35,6 @@ struct PanelView: View {
         }
         .padding(.top, 10)
         .padding([.horizontal, .bottom], 16)
-        .frame(width: 820 * scale)
     }
 
     /// Fila única y compacta: ventana temporal de las gráficas + zoom.

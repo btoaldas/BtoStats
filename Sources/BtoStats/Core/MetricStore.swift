@@ -11,6 +11,7 @@ final class MetricStore {
     private(set) var disk: DiskReader.Snapshot?
     private(set) var gpu: GPUReader.Snapshot?
     private(set) var sensors: SensorsReader.Snapshot?
+    private(set) var system: SystemReader.Snapshot?
 
     private(set) var cpuHistory = MetricSeries()
     private(set) var memoryHistory = MetricSeries()
@@ -55,5 +56,9 @@ final class MetricStore {
 
     func updateDisk(_ disk: DiskReader.Snapshot?) {
         if let disk { self.disk = disk }
+    }
+
+    func updateSystem(_ system: SystemReader.Snapshot?) {
+        if let system { self.system = system }
     }
 }

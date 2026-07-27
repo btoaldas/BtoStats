@@ -86,6 +86,17 @@ if runningCopies.count > 1 {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--system") {
+    let sys = SystemReader().read()
+    let h = Int(sys.uptimeSeconds) / 3600, m = (Int(sys.uptimeSeconds) % 3600) / 60
+    print(String(format: "uptime: %dh %dm", h, m))
+    print(String(format: "load avg: %.2f %.2f %.2f", sys.loadAverage.0, sys.loadAverage.1, sys.loadAverage.2))
+    print("procesos: \(sys.processCount)")
+    print(String(format: "swap: %.2f / %.2f GB", Double(sys.swapUsedBytes)/1e9, Double(sys.swapTotalBytes)/1e9))
+    print(String(format: "comprimida: %.2f GB", Double(sys.compressedBytes)/1e9))
+    exit(0)
+}
+
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate

@@ -35,6 +35,14 @@ final class PanelModel: ObservableObject {
     @Published var topGPUExact: [(name: String, gpuMs: Double)] = []
     @Published var helperActive: Bool = false
     @Published var totalCPUPercent: Double = 0   // suma pcpu (100 = 1 core)
+    // Avanzadas
+    @Published var uptimeSeconds: Double = 0
+    @Published var loadAverage: (Double, Double, Double) = (0, 0, 0)
+    @Published var processCount: Int = 0
+    @Published var swapUsedGB: Double = 0
+    @Published var swapTotalGB: Double = 0
+    @Published var compressedGB: Double = 0
+
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
     @Published var topNetwork: [ProcessReader.ProcessSample] = []
@@ -68,6 +76,14 @@ final class PanelModel: ObservableObject {
         if let disk = store.disk {
             diskAvailable = disk.availableBytes
             diskTotal = disk.totalBytes
+        }
+        if let sys = store.system {
+            uptimeSeconds = sys.uptimeSeconds
+            loadAverage = sys.loadAverage
+            processCount = sys.processCount
+            swapUsedGB = Double(sys.swapUsedBytes) / 1e9
+            swapTotalGB = Double(sys.swapTotalBytes) / 1e9
+            compressedGB = Double(sys.compressedBytes) / 1e9
         }
         let submitters = store.gpuSubmitterHistory.elements
         if !submitters.isEmpty {

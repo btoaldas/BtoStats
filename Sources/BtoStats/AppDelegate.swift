@@ -12,6 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let diskReader = DiskReader()
     private let gpuReader = GPUReader()
     private let sensorsReader = SensorsReader()
+    private let systemReader = SystemReader()
+    private var lastSystem: SystemReader.Snapshot?
     private var tickCounter = 0
     private var lastGPU: GPUReader.Snapshot?
     private var lastSensors: SensorsReader.Snapshot?
@@ -63,12 +65,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if self.tickCounter % 2 == 0 {
                     self.lastGPU = self.gpuReader.read()
                     self.lastSensors = self.sensorsReader.read()
+                    self.lastSystem = self.systemReader.read()
                 }
                 let gpu = self.lastGPU
                 let sensors = self.lastSensors
+                let system = self.lastSystem
                 DispatchQueue.main.async {
                     self.store.updateFast(cpu: cpu, memory: memory, network: network,
                                           gpu: gpu, sensors: sensors)
+                    self.store.updateSystem(system)
                     self.statusController?.render()
                     self.statusController?.panelController.refresh(from: self.store)
                     // sync (no solo refresh): permite activar/desactivar/redimensionar
