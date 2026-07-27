@@ -16,6 +16,7 @@ final class DesktopWidgetModel: ObservableObject {
     @Published var gpuHistory: [Double] = []
     @Published var upHistory: [Double] = []
     @Published var downHistory: [Double] = []
+    @Published var windowCapacity: Int = 300
     @Published var diskTotalText: String = "—"
     @Published var visibleMetrics: [MetricID] = []
 
@@ -35,11 +36,16 @@ final class DesktopWidgetModel: ObservableObject {
             uploadBps = network.uploadBps
             downloadBps = network.downloadBps
         }
-        cpuHistory = store.cpuHistory.window(seconds: 300).values
-        ramHistory = store.memoryHistory.window(seconds: 300).values
-        gpuHistory = store.gpuHistory.window(seconds: 300).values
-        upHistory = store.uploadHistory.window(seconds: 300).values
-        downHistory = store.downloadHistory.window(seconds: 300).values
+        // misma ventana temporal que el panel (config centralizada):
+        // 1 min / 5 min / 30 min / 1 h
+        let seconds = AppConfig.shared.chartWindowSeconds
+        let cpuWindow = store.cpuHistory.window(seconds: seconds)
+        cpuHistory = cpuWindow.values
+        windowCapacity = cpuWindow.capacity
+        ramHistory = store.memoryHistory.window(seconds: seconds).values
+        gpuHistory = store.gpuHistory.window(seconds: seconds).values
+        upHistory = store.uploadHistory.window(seconds: seconds).values
+        downHistory = store.downloadHistory.window(seconds: seconds).values
     }
 }
 
@@ -173,36 +179,44 @@ struct DesktopWidgetView: View {
     /// Sparkline de estado: 5 líneas con los MISMOS colores de los anillos
     /// (CPU azul, GPU verde, RAM naranja, subida roja, bajada celeste). La red
     /// se normaliza al pico de la ventana — sin ejes ni valores: solo estado.
+    /// Corre el eje X para que el presente quede SIEMPRE en el borde derecho:
+    /// la gráfica se desplaza en vez de comprimirse (mismo motor que el panel).
+    private func shifted(_ values: [Double]) -> [(x: Int, y: Double)] {
+        let offset = model.windowCapacity - values.count
+        return values.enumerated().map { (x: $0.offset + offset, y: $0.element) }
+    }
+
     private var historyChart: some View {
         let redPeak = max(model.upHistory.max() ?? 0, model.downHistory.max() ?? 0, 1)
         return Chart {
-            ForEach(Array(model.cpuHistory.enumerated()), id: \.offset) { index, value in
-                LineMark(x: .value("t", index), y: .value("v", value * 100),
+            ForEach(shifted(model.cpuHistory), id: \.x) { point in
+                LineMark(x: .value("t", point.x), y: .value("v", point.y * 100),
                          series: .value("s", "CPU"))
                     .foregroundStyle(.blue)
             }
-            ForEach(Array(model.gpuHistory.enumerated()), id: \.offset) { index, value in
-                LineMark(x: .value("t", index), y: .value("v", value),
+            ForEach(shifted(model.gpuHistory), id: \.x) { point in
+                LineMark(x: .value("t", point.x), y: .value("v", point.y),
                          series: .value("s", "GPU"))
                     .foregroundStyle(.green)
             }
-            ForEach(Array(model.ramHistory.enumerated()), id: \.offset) { index, value in
-                LineMark(x: .value("t", index), y: .value("v", value * 100),
+            ForEach(shifted(model.ramHistory), id: \.x) { point in
+                LineMark(x: .value("t", point.x), y: .value("v", point.y * 100),
                          series: .value("s", "RAM"))
                     .foregroundStyle(.orange)
             }
-            ForEach(Array(model.upHistory.enumerated()), id: \.offset) { index, value in
-                LineMark(x: .value("t", index), y: .value("v", value / redPeak * 100),
+            ForEach(shifted(model.upHistory), id: \.x) { point in
+                LineMark(x: .value("t", point.x), y: .value("v", point.y / redPeak * 100),
                          series: .value("s", "Subida"))
                     .foregroundStyle(.red)
             }
-            ForEach(Array(model.downHistory.enumerated()), id: \.offset) { index, value in
-                LineMark(x: .value("t", index), y: .value("v", value / redPeak * 100),
+            ForEach(shifted(model.downHistory), id: \.x) { point in
+                LineMark(x: .value("t", point.x), y: .value("v", point.y / redPeak * 100),
                          series: .value("s", "Bajada"))
                     .foregroundStyle(.cyan)
             }
         }
         .chartYScale(domain: 0...100)
+        .chartXScale(domain: 0...model.windowCapacity)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartLegend(.hidden)
