@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import UserNotifications
 
 /// Dispara una notificación nativa cuando una métrica CRUZA a nivel crítico
@@ -9,12 +9,16 @@ final class AlertMonitor {
     private var lastNotified: [MetricID: TimeInterval] = [:]
     private let cooldown: TimeInterval = 300
     private var authorized = false
+    private var checkedAuthorization = false
 
-    /// Pide permiso de notificaciones (solo funciona en la app empaquetada).
+    /// Pide permiso de notificaciones. macOS puede negarlo a apps con firma ad
+    /// hoc no registradas ("Notifications are not allowed"); en ese caso se usa
+    /// el fallback visual (NSAlert) para no perder la alerta.
     func requestAuthorizationIfNeeded() {
         guard Bundle.main.bundleURL.pathExtension == "app" else { return }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
             self.authorized = granted
+            self.checkedAuthorization = true
         }
     }
 
@@ -54,11 +58,26 @@ final class AlertMonitor {
     }
 
     private func notify(title: String, body: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+        if authorized {
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
+            UNUserNotificationCenter.current().add(
+                UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+            return
+        }
+        // Fallback: sin permiso de notificaciones, avisar con una alerta propia
+        // (no bloqueante para el muestreo: se muestra en main y se auto-cierra
+        // con el botón del usuario).
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = title
+            alert.informativeText = body
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Entendido")
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+        }
     }
 }

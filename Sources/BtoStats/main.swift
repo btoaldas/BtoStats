@@ -1,4 +1,5 @@
 import AppKit
+import UserNotifications
 
 // Modo verificación: imprime muestras de todos los readers y sale.
 // Uso: BtoStats --sample [segundos]
@@ -83,6 +84,23 @@ let runningCopies = NSRunningApplication.runningApplications(
     withBundleIdentifier: "ec.bto.BtoStats")
 if runningCopies.count > 1 {
     FileHandle.standardError.write("BtoStats ya está corriendo — saliendo.\n".data(using: .utf8)!)
+    exit(0)
+}
+
+if CommandLine.arguments.contains("--alert-test") {
+    // dispara una notificación de prueba y reporta el estado del permiso
+    let center = UNUserNotificationCenter.current()
+    center.requestAuthorization(options: [.alert, .sound]) { granted, err in
+        print("permiso concedido: \(granted)  error: \(err?.localizedDescription ?? "ninguno")")
+        let c = UNMutableNotificationContent()
+        c.title = "BtoStats — prueba"
+        c.body = "Si ves esto, las alertas funcionan."
+        center.add(UNNotificationRequest(identifier: UUID().uuidString, content: c, trigger: nil)) { e in
+            print("envio: \(e?.localizedDescription ?? "ok")")
+            exit(0)
+        }
+    }
+    RunLoop.main.run(until: Date().addingTimeInterval(8))
     exit(0)
 }
 
