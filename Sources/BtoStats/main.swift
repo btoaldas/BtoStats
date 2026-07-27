@@ -77,6 +77,15 @@ if CommandLine.arguments.contains("--top") {
     exit(0)
 }
 
+// Instancia única: si ya corre otra copia (dev vs .app instalada, o dos .app),
+// no arrancar una segunda que duplicaría íconos en la barra.
+let runningCopies = NSRunningApplication.runningApplications(
+    withBundleIdentifier: "ec.bto.BtoStats")
+if runningCopies.count > 1 {
+    FileHandle.standardError.write("BtoStats ya está corriendo — saliendo.\n".data(using: .utf8)!)
+    exit(0)
+}
+
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate

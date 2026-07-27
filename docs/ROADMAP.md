@@ -85,12 +85,22 @@ reproducible antes de darse por cerrada.
 - [x] Métricas de los anillos configurables (respetan checks y orden de
       Preferencias; XL con sparkline de 5 líneas). Panel anclable (opción).
 
-## Fase 8 — Helper de administrador (opcional, OFF por defecto)
+## Fase 8 — Helper de administrador ✅ (opcional, OFF por defecto)
 
-Instalable desde Preferencias con aprobación única del usuario
-(SMAppService.daemon + XPC con validación de firma; solo operaciones
-concretas, jamás un shell privilegiado — ver VIABILIDAD §4).
+Instalable desde Preferencias con aprobación única (SMAppService.daemon +
+NSXPC; validación del cliente por ruta del ejecutable; superficie de 3
+operaciones cerradas, jamás un shell privilegiado — ver VIABILIDAD §4).
 
-- [ ] Top GPU exacto por proceso (powermetrics vía helper).
-- [ ] Matar procesos de otros usuarios/root (con doble confirmación).
-- [ ] purge / presión de memoria simulada (etiquetados como experimentales).
+- [x] Top GPU exacto por proceso (powermetrics --show-process-gpu vía helper;
+      el panel muestra ms/s cuando el helper está activo, aprox. si no).
+- [x] Matar procesos de otros usuarios/root (doble confirmación + verificación
+      de identidad del pid en el helper; nunca pid<=1).
+- [x] purgeDiskCache (experimental, etiquetado; purge no libera memoria de apps).
+- [x] Instancia única (evita íconos duplicados dev vs .app).
+- [x] Empaquetado con helper embebido + LaunchDaemon plist; firma en orden.
+
+## Fase 9 — Release final e instalación
+
+- [ ] Review de seguridad del helper (gate) — en curso.
+- [ ] Instalar BtoStats.app en /Applications (a pedido de Alberto).
+- [ ] Release v1.0.0.

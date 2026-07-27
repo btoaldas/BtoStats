@@ -29,8 +29,11 @@ final class PanelModel: ObservableObject {
 
     @Published var memoryPressure: MemoryAdvisor.Pressure = .normal
     @Published var lastGPUProcess: String?
-    /// (proceso, % de muestras de la ventana de 5 min en que fue el último en usar la GPU)
+    /// (proceso, % de muestras de la ventana en que fue el último en usar la GPU)
     @Published var topGPU: [(name: String, percent: Double)] = []
+    /// Top GPU EXACTO (ms/s por proceso) — solo si el helper está instalado.
+    @Published var topGPUExact: [(name: String, gpuMs: Double)] = []
+    @Published var helperActive: Bool = false
     @Published var totalCPUPercent: Double = 0   // suma pcpu (100 = 1 core)
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []

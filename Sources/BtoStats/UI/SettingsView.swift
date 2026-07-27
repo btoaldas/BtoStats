@@ -12,6 +12,8 @@ struct SettingsView: View {
     @State private var desktopWidgetOn: Bool = AppConfig.shared.desktopWidgetEnabled
     @State private var desktopWidgetSize: AppConfig.DesktopWidgetSize = AppConfig.shared.desktopWidgetSize
     @State private var launchAtLogin: Bool = SMAppService.mainApp.status == .enabled
+    @State private var helperInstalled: Bool = HelperClient.shared.isInstalled
+    @State private var helperError: String?
     @State private var launchError: String?
 
     /// SMAppService requiere que la app corra como bundle .app (fase 6).
@@ -124,6 +126,31 @@ struct SettingsView: View {
                 Text(launchError)
                     .font(.caption)
                     .foregroundStyle(.red)
+            }
+
+            Divider()
+
+            Toggle("Funciones de administrador (opcional)", isOn: $helperInstalled)
+                .disabled(!isBundled)
+                .onChange(of: helperInstalled) { _, enabled in
+                    do {
+                        if enabled { try HelperClient.shared.install() }
+                        else { try HelperClient.shared.uninstall() }
+                        helperError = nil
+                    } catch {
+                        helperError = error.localizedDescription
+                        helperInstalled = HelperClient.shared.isInstalled
+                    }
+                }
+            Text("Instala un ayudante privilegiado (pide tu contraseña una vez) para: GPU exacta por proceso, cerrar procesos de otros usuarios/root y vaciar caché de disco. Todo desde el panel, con confirmación.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if !isBundled {
+                Text("Disponible cuando la app esté instalada como .app.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if let helperError {
+                Text(helperError).font(.caption).foregroundStyle(.red)
             }
         }
         .padding(20)

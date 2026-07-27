@@ -144,9 +144,14 @@ final class PanelController: NSObject, NSWindowDelegate {
                 self.model.topCPU = snapshot.topCPU
                 self.model.totalCPUPercent = snapshot.totalCPUPercent
                 self.model.topRAM = snapshot.topRAM
-                // publicar siempre: congelar la última lista no vacía mostraría
-                // tráfico viejo como actual
                 self.model.topNetwork = snapshot.topNetwork
+            }
+        }
+        // GPU exacta por proceso vía helper (si está instalado).
+        model.helperActive = HelperClient.shared.isInstalled
+        if model.helperActive {
+            HelperClient.shared.topGPUProcesses { [weak self] rows in
+                self?.model.topGPUExact = rows.map { (name: $0.name, gpuMs: $0.gpuMs) }
             }
         }
     }

@@ -246,22 +246,37 @@ struct PanelView: View {
 
     private var topGPUList: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Top GPU — % tiempo (aprox.)").font(.caption).bold().foregroundStyle(.secondary)
-            if model.topGPU.isEmpty {
-                Text("midiendo…").font(.caption).foregroundStyle(.tertiary)
-            }
-            ForEach(model.topGPU, id: \.name) { entry in
-                HStack {
-                    Text(displayName(entry.name))
-                        .font(.system(size: processFont))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .help(entry.name)
-                    Spacer(minLength: 8)
-                    Text(String(format: "%.0f%%", entry.percent))
-                        .font(.system(size: processFont, weight: .medium))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+            Text(model.helperActive ? "Top GPU — ms/s (exacto)" : "Top GPU — % tiempo (aprox.)")
+                .font(.caption).bold().foregroundStyle(.secondary)
+            if model.helperActive {
+                if model.topGPUExact.isEmpty {
+                    Text("midiendo…").font(.caption).foregroundStyle(.tertiary)
+                }
+                ForEach(model.topGPUExact, id: \.name) { entry in
+                    HStack {
+                        Text(displayName(entry.name))
+                            .font(.system(size: processFont)).lineLimit(1)
+                            .truncationMode(.tail).help(entry.name)
+                        Spacer(minLength: 8)
+                        Text(String(format: "%.0f ms/s", entry.gpuMs))
+                            .font(.system(size: processFont, weight: .medium))
+                            .monospacedDigit().foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                if model.topGPU.isEmpty {
+                    Text("midiendo…").font(.caption).foregroundStyle(.tertiary)
+                }
+                ForEach(model.topGPU, id: \.name) { entry in
+                    HStack {
+                        Text(displayName(entry.name))
+                            .font(.system(size: processFont)).lineLimit(1)
+                            .truncationMode(.tail).help(entry.name)
+                        Spacer(minLength: 8)
+                        Text(String(format: "%.0f%%", entry.percent))
+                            .font(.system(size: processFont, weight: .medium))
+                            .monospacedDigit().foregroundStyle(.secondary)
+                    }
                 }
             }
         }
@@ -302,45 +317,65 @@ struct PanelView: View {
     /// Cerrar proceso: SIEMPRE con confirmación; forzar es una opción aparte
     /// del mismo diálogo. Procesos de otro usuario: deshabilitado (helper fase 8).
     private func killButton(for sample: ProcessReader.ProcessSample) -> some View {
-        let permitted = ProcessKiller.canTerminate(pid: sample.pid)
+        let own = ProcessKiller.canTerminate(pid: sample.pid)
+        let canAct = own || model.helperActive
         return Button {
-            confirmAndTerminate(sample)
+            confirmAndTerminate(sample, privileged: !own)
         } label: {
             Image(systemName: "xmark.circle")
                 .font(.system(size: 10))
-                .foregroundStyle(permitted ? Color.red.opacity(0.8) : Color.gray.opacity(0.4))
+                .foregroundStyle(canAct ? Color.red.opacity(0.8) : Color.gray.opacity(0.4))
         }
         .buttonStyle(.plain)
-        .disabled(!permitted)
-        .help(permitted
-              ? "Cerrar \(sample.name) (con confirmación)"
-              : "Proceso de otro usuario — requiere el helper de administrador (fase 8)")
+        .disabled(!canAct)
+        .help(own ? "Cerrar \(sample.name) (con confirmación)"
+              : model.helperActive ? "Cerrar \(sample.name) — proceso privilegiado (doble confirmación)"
+              : "Proceso de otro usuario — activa las funciones de administrador en Preferencias")
     }
 
-    private func confirmAndTerminate(_ sample: ProcessReader.ProcessSample) {
-        // nombre saneado: sin caracteres de control y acotado (un proceso
-        // podría llamarse algo diseñado para deformar el diálogo)
+    private func confirmAndTerminate(_ sample: ProcessReader.ProcessSample, privileged: Bool) {
         let safeName = String(sample.name.unicodeScalars
             .filter { !CharacterSet.controlCharacters.contains($0) }
             .prefix(60))
         let alert = NSAlert()
         alert.messageText = "¿Cerrar \"\(safeName)\" (PID \(sample.pid))?"
-        alert.informativeText = "Terminar pide el cierre educado (la app puede preguntar si guardas cambios). Forzar cierre mata el proceso al instante y puede perder datos."
-        alert.alertStyle = .warning
+        alert.informativeText = privileged
+            ? "⚠️ Proceso de otro usuario o del sistema. Cerrarlo puede desestabilizar la sesión. Se cerrará con privilegios de administrador."
+            : "Terminar pide el cierre educado (la app puede preguntar si guardas cambios). Forzar cierre mata el proceso al instante y puede perder datos."
+        alert.alertStyle = privileged ? .critical : .warning
         alert.addButton(withTitle: "Terminar")
         alert.addButton(withTitle: "Forzar cierre")
         alert.addButton(withTitle: "Cancelar")
         NSApp.activate(ignoringOtherApps: true)
         let choice = alert.runModal()
         guard choice != .alertThirdButtonReturn else { return }
-        let outcome = ProcessKiller.terminate(pid: sample.pid,
-                                              force: choice == .alertSecondButtonReturn,
-                                              expectedName: sample.name)
-        if case .failed(let reason) = outcome {
-            let error = NSAlert()
-            error.messageText = "No se pudo cerrar \(sample.name)"
-            error.informativeText = reason
-            error.runModal()
+        let force = choice == .alertSecondButtonReturn
+
+        // Segunda confirmación para procesos privilegiados (root/otros).
+        if privileged {
+            let confirm = NSAlert()
+            confirm.messageText = "Confirmar cierre privilegiado de \"\(safeName)\""
+            confirm.informativeText = "Esta acción usa el ayudante de administrador. ¿Seguro?"
+            confirm.alertStyle = .critical
+            confirm.addButton(withTitle: "Sí, cerrar")
+            confirm.addButton(withTitle: "Cancelar")
+            guard confirm.runModal() == .alertFirstButtonReturn else { return }
+            HelperClient.shared.terminatePrivileged(pid: sample.pid, force: force,
+                                                     name: sample.name) { result in
+                if result != "ok" { Self.showError(sample.name, result) }
+            }
+            return
         }
+
+        let outcome = ProcessKiller.terminate(pid: sample.pid, force: force,
+                                              expectedName: sample.name)
+        if case .failed(let reason) = outcome { Self.showError(sample.name, reason) }
+    }
+
+    private static func showError(_ name: String, _ reason: String) {
+        let error = NSAlert()
+        error.messageText = "No se pudo cerrar \(name)"
+        error.informativeText = reason
+        error.runModal()
     }
 }
