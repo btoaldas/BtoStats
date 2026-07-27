@@ -49,6 +49,14 @@ final class PanelModel: ObservableObject {
     @Published var wifiQuality: Int = 0
     @Published var wifiTxMbps: Double = 0
     @Published var wifiActive: Bool = false
+    @Published var batteryActive: Bool = false
+    @Published var batteryPct: Int = 0
+    @Published var batteryCharging: Bool = false
+    @Published var batteryTimeMin: Int? = nil
+    @Published var batteryCycles: Int = 0
+    @Published var batteryHealth: Int = 0
+    @Published var batteryWatts: Double = 0
+    @Published var batteryTemp: Double? = nil
 
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
@@ -84,6 +92,16 @@ final class PanelModel: ObservableObject {
             diskAvailable = disk.availableBytes
             diskTotal = disk.totalBytes
         }
+        if let bat = store.battery {
+            batteryActive = true
+            batteryPct = bat.percentage
+            batteryCharging = bat.isCharging
+            batteryTimeMin = bat.timeRemainingMinutes
+            batteryCycles = bat.cycleCount
+            batteryHealth = bat.healthPercent
+            batteryWatts = bat.watts
+            batteryTemp = bat.temperatureC
+        } else { batteryActive = false }
         if let wifi = store.wifi {
             wifiActive = true
             wifiSSID = wifi.ssid ?? "(oculto)"

@@ -16,6 +16,17 @@ struct AdvancedPanelView: View {
                         model.loadAverage.0, model.loadAverage.1, model.loadAverage.2))
                     row("Procesos", "\(model.processCount)")
                 }
+                if model.batteryActive {
+                    section("Batería") {
+                        row("Carga", "\(model.batteryPct)%" + (model.batteryCharging ? " (cargando)" : ""))
+                        if let m = model.batteryTimeMin {
+                            row(model.batteryCharging ? "Hasta llena" : "Restante", "\(m/60)h \(m%60)m")
+                        }
+                        row("Salud", "\(model.batteryHealth)% (\(model.batteryCycles) ciclos)")
+                        row("Potencia", String(format: "%@%.1f W", model.batteryWatts >= 0 ? "+" : "", model.batteryWatts))
+                        if let t = model.batteryTemp { row("Temperatura", String(format: "%.0f °C", t)) }
+                    }
+                }
                 if model.wifiActive {
                     section("Wi-Fi") {
                         row("Red", model.wifiSSID)

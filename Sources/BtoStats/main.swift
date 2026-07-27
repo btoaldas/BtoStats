@@ -86,6 +86,14 @@ if runningCopies.count > 1 {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--battery") {
+    if let b = BatteryReader().read() {
+        print("carga: \(b.percentage)%  cargando: \(b.isCharging)  restante: \(b.timeRemainingMinutes.map(String.init) ?? "?") min")
+        print("salud: \(b.healthPercent)%  ciclos: \(b.cycleCount)  watts: \(b.watts)  temp: \(b.temperatureC.map { String(format: "%.1f", $0) } ?? "?")")
+    } else { print("sin batería") }
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--wifi") {
     if let w = WiFiReader().read() {
         print("SSID: \(w.ssid ?? "?")  banda: \(w.bandGHz) GHz  canal: \(w.channel)")
