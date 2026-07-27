@@ -182,6 +182,12 @@ final class AppConfig {
         set { defaults.set(newValue, forKey: "dynamicColors") }
     }
 
+    /// Mini-gráficas (sparklines) junto a los números en la barra (OFF por defecto).
+    var barSparklinesEnabled: Bool {
+        get { defaults.bool(forKey: "barSparklines") }
+        set { defaults.set(newValue, forKey: "barSparklines") }
+    }
+
     /// Notificaciones cuando una métrica cruza su umbral crítico (OFF por defecto).
     var alertsEnabled: Bool {
         get { defaults.bool(forKey: "alertsEnabled") }

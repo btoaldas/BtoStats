@@ -166,9 +166,29 @@ final class StatusItemController: NSObject {
             columns.append(current)
         }
 
-        applyGrid(columns.isEmpty
+        let grid = columns.isEmpty
             ? Self.grid(columns: [[GridCell(label: "Bto", value: "Stats")]], rows: 1)
-            : Self.grid(columns: columns, rows: rows))
+            : Self.grid(columns: columns, rows: rows)
+
+        // Sparkline de CPU a la izquierda (opt-in): mini-gráfica del historial
+        // como imagen embebida, sin tocar el layout de la cuadrícula.
+        if AppConfig.shared.barSparklinesEnabled {
+            let history = store.cpuHistory.window(seconds: 60).values
+            if let image = Self.sparklineImage(history, rows: rows) {
+                let combined = NSMutableAttributedString()
+                let attachment = NSTextAttachment()
+                attachment.image = image
+                attachment.bounds = CGRect(x: 0, y: -3, width: image.size.width, height: image.size.height)
+                combined.append(NSAttributedString(attachment: attachment))
+                combined.append(NSAttributedString(string: " "))
+                combined.append(grid.title)
+                applyGrid((combined, grid.width + image.size.width + 6))
+            } else {
+                applyGrid(grid)
+            }
+        } else {
+            applyGrid(grid)
+        }
 
         if let cpu = store.cpu {
             cpuMenuItem.attributedTitle = Self.detailTitle(String(format: "CPU: %.1f%% (%d núcleos)",
@@ -323,4 +343,29 @@ struct GridCell {
     let label: String
     let value: String
     var color: NSColor = .labelColor
+}
+
+extension StatusItemController {
+    /// Mini-gráfica del historial (0-1) como imagen para la barra de menús.
+    static func sparklineImage(_ values: [Double], rows: Int) -> NSImage? {
+        guard values.count >= 2 else { return nil }
+        let width: CGFloat = 26
+        let height: CGFloat = rows >= 4 ? 12 : (rows == 3 ? 14 : 16)
+        let image = NSImage(size: NSSize(width: width, height: height))
+        image.lockFocus()
+        let path = NSBezierPath()
+        path.lineWidth = 1
+        let maxV = max(values.max() ?? 1, 0.01)
+        for (i, v) in values.enumerated() {
+            let x = width * CGFloat(i) / CGFloat(values.count - 1)
+            let y = 1 + (height - 2) * CGFloat(min(v / maxV, 1))
+            if i == 0 { path.move(to: NSPoint(x: x, y: y)) }
+            else { path.line(to: NSPoint(x: x, y: y)) }
+        }
+        NSColor.labelColor.withAlphaComponent(0.7).setStroke()
+        path.stroke()
+        image.unlockFocus()
+        image.isTemplate = false
+        return image
+    }
 }
