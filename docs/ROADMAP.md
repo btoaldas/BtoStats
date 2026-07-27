@@ -91,8 +91,9 @@ Instalable desde Preferencias con aprobación única (SMAppService.daemon +
 NSXPC; validación del cliente por ruta del ejecutable; superficie de 3
 operaciones cerradas, jamás un shell privilegiado — ver VIABILIDAD §4).
 
-- [x] Top GPU exacto por proceso (powermetrics --show-process-gpu vía helper;
-      el panel muestra ms/s cuando el helper está activo, aprox. si no).
+- [~] Top GPU exacto por proceso: NO POSIBLE en Apple Silicon (powermetrics no
+      expone GPU/proceso en M-series, verificado en M5 — VIABILIDAD §3). Se usa
+      el aproximado por muestreo. El helper ya no corre powermetrics.
 - [x] Matar procesos de otros usuarios/root (doble confirmación + verificación
       de identidad del pid en el helper; nunca pid<=1).
 - [x] purgeDiskCache (experimental, etiquetado; purge no libera memoria de apps).

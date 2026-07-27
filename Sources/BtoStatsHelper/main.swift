@@ -49,38 +49,11 @@ final class HelperDelegate: NSObject, NSXPCListenerDelegate, BtoStatsHelperProto
     }
 
     func topGPUProcesses(reply: @escaping (Data) -> Void) {
-        // powermetrics con salida plist estructurada; una muestra corta.
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/powermetrics")
-        process.arguments = ["--samplers", "tasks", "--show-process-gpu",
-                             "-i", "700", "-n", "1", "-f", "plist"]
-        let stdout = Pipe()
-        process.standardOutput = stdout
-        process.standardError = FileHandle.nullDevice
-        do { try process.run() } catch {
-            reply(Data("[]".utf8)); return
-        }
-        let watchdog = DispatchWorkItem { if process.isRunning { process.terminate() } }
-        DispatchQueue.global().asyncAfter(deadline: .now() + 8, execute: watchdog)
-        let data = stdout.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        watchdog.cancel()
-
-        guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil),
-              let root = plist as? [String: Any],
-              let tasks = root["tasks"] as? [[String: Any]] else {
-            reply(Data("[]".utf8)); return
-        }
-        let rows: [[String: Any]] = tasks.compactMap { task in
-            guard let pid = task["pid"] as? Int,
-                  let name = task["name"] as? String else { return nil }
-            let gpuMs = (task["gputime_ms_per_s"] as? Double)
-                ?? (task["gputime_ns"] as? Double).map { $0 / 1_000_000 } ?? 0
-            guard gpuMs > 0 else { return nil }
-            return ["pid": pid, "name": name, "gpuMs": gpuMs]
-        }
-        .sorted { ($0["gpuMs"] as? Double ?? 0) > ($1["gpuMs"] as? Double ?? 0) }
-        reply((try? JSONSerialization.data(withJSONObject: Array(rows.prefix(10)))) ?? Data("[]".utf8))
+        // No implementado a propósito: powermetrics NO expone tiempo de GPU por
+        // proceso en Apple Silicon (verificado en M5 — cero campos gpu* en el
+        // plist de tasks, ni como root). Se conserva en el protocolo por
+        // compatibilidad; la app usa el top GPU aproximado sin helper.
+        reply(Data("[]".utf8))
     }
 
     func terminateProcess(pid: Int32, force: Bool, expectedName: String,

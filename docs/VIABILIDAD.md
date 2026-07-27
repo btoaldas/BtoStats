@@ -75,6 +75,12 @@ redibujado del status item — ahí hay que optimizar, no en los readers.
 - Actualiza sub-segundo y puede dar 0 transitorio bajo carga [V] → suavizar con EMA;
   `Renderer/Tiler` pueden superar 100 → clamp.
 - Cachear el `io_service_t` y releer solo propiedades por tick.
+- **GPU por proceso: IMPOSIBLE en Apple Silicon [V]** — verificado en M5 con
+  `powermetrics --samplers tasks --show-process-gpu` (como root): el plist de
+  tasks NO trae ningún campo `gpu*` (cero, ni con `--show-process-gpu`, que es
+  legacy de Intel). No hay API pública ni privilegiada para %GPU por proceso en
+  M-series; Activity Monitor tampoco lo muestra realmente. El top GPU de
+  BtoStats es aproximado por muestreo de `AGCInfo.fLastSubmissionPID`.
 - Fase posterior opcional: `libIOReport` (privada, sin sudo [V]) para watts de GPU
   ("Energy Model" / "GPU Energy") y residencia de P-states (canal `GPUPH` [V]).
   Enumerar canales en runtime, fail-soft si no existen. Sin temperatura ni clock aquí —

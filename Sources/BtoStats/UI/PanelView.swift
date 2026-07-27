@@ -229,7 +229,7 @@ struct PanelView: View {
                 topList("Top Red", model.topNetwork) { StatusItemController.rate($0.value) + "/s" }
                 topGPUList
             }
-            Text("Top GPU: aproximado por muestreo (% del tiempo en que cada proceso fue el último en enviar trabajo a la GPU). El % exacto por proceso requiere el helper de administrador (fase 8).")
+            Text("Top GPU: aproximado por muestreo (% del tiempo en que cada proceso fue el último en enviar trabajo a la GPU). macOS no expone %GPU exacto por proceso en Apple Silicon, ni con permisos de administrador.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             HStack(spacing: 6) {
@@ -246,37 +246,20 @@ struct PanelView: View {
 
     private var topGPUList: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(model.helperActive ? "Top GPU — ms/s (exacto)" : "Top GPU — % tiempo (aprox.)")
+            Text("Top GPU — % tiempo (aprox.)")
                 .font(.caption).bold().foregroundStyle(.secondary)
-            if model.helperActive {
-                if model.topGPUExact.isEmpty {
-                    Text("midiendo…").font(.caption).foregroundStyle(.tertiary)
-                }
-                ForEach(model.topGPUExact, id: \.name) { entry in
-                    HStack {
-                        Text(displayName(entry.name))
-                            .font(.system(size: processFont)).lineLimit(1)
-                            .truncationMode(.tail).help(entry.name)
-                        Spacer(minLength: 8)
-                        Text(String(format: "%.0f ms/s", entry.gpuMs))
-                            .font(.system(size: processFont, weight: .medium))
-                            .monospacedDigit().foregroundStyle(.secondary)
-                    }
-                }
-            } else {
-                if model.topGPU.isEmpty {
-                    Text("midiendo…").font(.caption).foregroundStyle(.tertiary)
-                }
-                ForEach(model.topGPU, id: \.name) { entry in
-                    HStack {
-                        Text(displayName(entry.name))
-                            .font(.system(size: processFont)).lineLimit(1)
-                            .truncationMode(.tail).help(entry.name)
-                        Spacer(minLength: 8)
-                        Text(String(format: "%.0f%%", entry.percent))
-                            .font(.system(size: processFont, weight: .medium))
-                            .monospacedDigit().foregroundStyle(.secondary)
-                    }
+            if model.topGPU.isEmpty {
+                Text("midiendo…").font(.caption).foregroundStyle(.tertiary)
+            }
+            ForEach(model.topGPU, id: \.name) { entry in
+                HStack {
+                    Text(displayName(entry.name))
+                        .font(.system(size: processFont)).lineLimit(1)
+                        .truncationMode(.tail).help(entry.name)
+                    Spacer(minLength: 8)
+                    Text(String(format: "%.0f%%", entry.percent))
+                        .font(.system(size: processFont, weight: .medium))
+                        .monospacedDigit().foregroundStyle(.secondary)
                 }
             }
         }

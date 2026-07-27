@@ -153,13 +153,10 @@ final class PanelController: NSObject, NSWindowDelegate {
                 self.model.topNetwork = snapshot.topNetwork
             }
         }
-        // GPU exacta por proceso vía helper (si está instalado).
+        // Nota: NO hay top GPU exacto por proceso en Apple Silicon —
+        // powermetrics no expone GPU/proceso en M-series (verificado en M5),
+        // ni con root. Se usa siempre el aproximado por muestreo.
         model.helperActive = HelperClient.shared.isInstalled
-        if model.helperActive {
-            HelperClient.shared.topGPUProcesses { [weak self] rows in
-                self?.model.topGPUExact = rows.map { (name: $0.name, gpuMs: $0.gpuMs) }
-            }
-        }
     }
 
 }

@@ -142,7 +142,7 @@ struct SettingsView: View {
                         helperInstalled = HelperClient.shared.isInstalled
                     }
                 }
-            Text("Instala un ayudante privilegiado (pide tu contraseña una vez) para: GPU exacta por proceso, cerrar procesos de otros usuarios/root y vaciar caché de disco. Todo desde el panel, con confirmación.")
+            Text("Instala un ayudante privilegiado (pide tu contraseña una vez) para: cerrar procesos de otros usuarios/root (con doble confirmación) y vaciar caché de disco. Nota: macOS no permite medir GPU por proceso en Apple Silicon.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if !isBundled {
