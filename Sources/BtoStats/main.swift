@@ -86,6 +86,21 @@ if runningCopies.count > 1 {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--history-verify") {
+    UserDefaults(suiteName: "ec.bto.BtoStats")?.set(true, forKey: "historyEnabled")
+    let base = Date().timeIntervalSince1970 - 3600
+    let h1 = HistoryStore()
+    for i in 0..<5 {
+        h1.recordIfDue(cpu: Double(i)/10, ram: 0.5, gpu: Double(i*10), temp: 50, now: base + Double(i)*61)
+    }
+    // "reabrir": nueva instancia lee del disco
+    let h2 = HistoryStore()
+    let samples = h2.load(sinceSeconds: 7200, now: Date().timeIntervalSince1970)
+    print("muestras persistidas y releídas: \(samples.count)")
+    for s in samples.suffix(5) { print(String(format: "  ts=%.0f cpu=%.0f%% gpu=%.0f%%", s.timestamp, s.cpu*100, s.gpu)) }
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--clusters") {
     let r = CPUReader(); _ = r.read(); Thread.sleep(forTimeInterval: 1)
     if let s = r.read() {

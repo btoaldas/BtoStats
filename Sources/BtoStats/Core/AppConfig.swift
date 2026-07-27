@@ -182,6 +182,12 @@ final class AppConfig {
         set { defaults.set(newValue, forKey: "dynamicColors") }
     }
 
+    /// Histórico persistente en disco para gráficas de día/mes (OFF por defecto).
+    var historyEnabled: Bool {
+        get { defaults.bool(forKey: "historyEnabled") }
+        set { defaults.set(newValue, forKey: "historyEnabled") }
+    }
+
     /// Mini-gráficas (sparklines) junto a los números en la barra (OFF por defecto).
     var barSparklinesEnabled: Bool {
         get { defaults.bool(forKey: "barSparklines") }

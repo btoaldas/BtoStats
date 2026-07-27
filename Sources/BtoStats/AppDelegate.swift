@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastGPU: GPUReader.Snapshot?
     private var lastSensors: SensorsReader.Snapshot?
     private let alertMonitor = AlertMonitor()
+    private let history = HistoryStore()
     private var uptimeAtLaunch = ProcessInfo.processInfo.systemUptime
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -38,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         startSampling()
         alertMonitor.requestAuthorizationIfNeeded()
+        history.prune(now: Date().timeIntervalSince1970)
 
         // Modo de prueba: abre Preferencias a los 2 s (capturas del manual).
         if ProcessInfo.processInfo.environment["BTOSTATS_TEST_SETTINGS"] != nil {
@@ -97,6 +99,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.desktopWidget.sync(store: self.store)
                     self.alertMonitor.check(store: self.store,
                                             now: ProcessInfo.processInfo.systemUptime)
+                    self.history.recordIfDue(
+                        cpu: self.store.cpu?.totalUsage ?? 0,
+                        ram: self.store.memory?.fractionUsed ?? 0,
+                        gpu: self.store.gpu?.utilization ?? 0,
+                        temp: self.store.sensors?.cpuTempAvg ?? 0,
+                        now: Date().timeIntervalSince1970)
                 }
             },
             slow: { [weak self] in

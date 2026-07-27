@@ -20,6 +20,8 @@ struct SettingsView: View {
     // Avanzadas (opt-in)
     @State private var dynamicColors: Bool = AppConfig.shared.dynamicColorsEnabled
     @State private var alertsEnabled: Bool = AppConfig.shared.alertsEnabled
+    @State private var sparklines: Bool = AppConfig.shared.barSparklinesEnabled
+    @State private var historyOn: Bool = AppConfig.shared.historyEnabled
     @State private var cpuWarn: Double = AppConfig.shared.threshold(.cpu, .warning) * 100
     @State private var cpuCrit: Double = AppConfig.shared.threshold(.cpu, .critical) * 100
     @State private var tempWarn: Double = AppConfig.shared.threshold(.temperature, .warning)
@@ -143,6 +145,18 @@ struct SettingsView: View {
                     .onChange(of: alertsEnabled) { _, v in
                         AppConfig.shared.alertsEnabled = v; AppConfig.shared.notifyChanged()
                     }
+
+                Toggle("Mini-gráfica de CPU en la barra", isOn: $sparklines)
+                    .onChange(of: sparklines) { _, v in
+                        AppConfig.shared.barSparklinesEnabled = v; AppConfig.shared.notifyChanged()
+                    }
+
+                Toggle("Histórico persistente (gráficas de día/semana/mes)", isOn: $historyOn)
+                    .onChange(of: historyOn) { _, v in
+                        AppConfig.shared.historyEnabled = v; AppConfig.shared.notifyChanged()
+                    }
+                Text("Guarda una muestra por minuto en disco para ver tendencias largas en el panel → Avanzadas.")
+                    .font(.caption).foregroundStyle(.secondary)
 
                 Divider()
 

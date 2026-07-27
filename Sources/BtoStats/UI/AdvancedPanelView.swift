@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 /// Pestaña "Avanzadas" del panel: métricas extra opt-in (sistema, Wi-Fi, watts,
 /// frecuencias, disco I/O…). Se llena por bloques; los que aún no aplican al
@@ -7,9 +8,14 @@ struct AdvancedPanelView: View {
     @ObservedObject var model: PanelModel
     var scale: Double = 1
 
+    private let history = HistoryStore()
+    @State private var historyWindow = 86400.0 // día
+    @State private var samples: [HistoryStore.Sample] = []
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                historySection
                 if model.cpuWatts != nil || model.gpuWatts != nil {
                     section("Energía (watts en vivo)") {
                         row("CPU", model.cpuWatts.map { String(format: "%.1f W", $0) } ?? "—")
@@ -73,6 +79,51 @@ struct AdvancedPanelView: View {
             }
             .padding(16)
         }
+    }
+
+    @ViewBuilder private var historySection: some View {
+        if AppConfig.shared.historyEnabled {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Histórico").font(.headline)
+                    Spacer()
+                    Picker("", selection: $historyWindow) {
+                        Text("Día").tag(86400.0)
+                        Text("Semana").tag(604800.0)
+                        Text("Mes").tag(2678400.0)
+                    }
+                    .pickerStyle(.segmented).labelsHidden().frame(width: 200)
+                    .onChange(of: historyWindow) { _, _ in reloadHistory() }
+                }
+                if samples.count < 2 {
+                    Text("Aún recopilando (1 muestra por minuto). Vuelve más tarde.")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Chart {
+                        ForEach(Array(samples.enumerated()), id: \.offset) { _, s in
+                            LineMark(x: .value("t", s.timestamp), y: .value("%", s.cpu * 100),
+                                     series: .value("s", "CPU")).foregroundStyle(.blue)
+                            LineMark(x: .value("t", s.timestamp), y: .value("%", s.ram * 100),
+                                     series: .value("s", "RAM")).foregroundStyle(.orange)
+                            LineMark(x: .value("t", s.timestamp), y: .value("%", s.gpu),
+                                     series: .value("s", "GPU")).foregroundStyle(.green)
+                        }
+                    }
+                    .chartYScale(domain: 0...100)
+                    .chartForegroundStyleScale(["CPU": Color.blue, "RAM": Color.orange, "GPU": Color.green])
+                    .chartXAxis(.hidden)
+                    .frame(height: 120)
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+            .onAppear { reloadHistory() }
+        }
+    }
+
+    private func reloadHistory() {
+        samples = history.load(sinceSeconds: historyWindow, now: Date().timeIntervalSince1970)
     }
 
     private var uptimeText: String {
