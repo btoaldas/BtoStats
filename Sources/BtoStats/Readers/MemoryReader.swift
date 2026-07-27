@@ -4,6 +4,9 @@ import Foundation
 /// "Usada" se aproxima al criterio de Activity Monitor:
 /// app anónima (internal - purgeable) + wired + comprimida.
 final class MemoryReader {
+    /// mach_host_self() incrementa una referencia al port en CADA llamada:
+    /// obtenerlo una sola vez evita la fuga acumulativa.
+    private static let host = mach_host_self()
     let totalBytes = Double(ProcessInfo.processInfo.physicalMemory)
 
     struct Snapshot {
@@ -17,7 +20,7 @@ final class MemoryReader {
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.stride / MemoryLayout<integer_t>.stride)
         let result = withUnsafeMutablePointer(to: &stats) {
             $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+                host_statistics64(Self.host, HOST_VM_INFO64, $0, &count)
             }
         }
         guard result == KERN_SUCCESS else { return nil }

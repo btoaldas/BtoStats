@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var disabled: Set<MetricID> = AppConfig.shared.disabledMetrics
     @State private var interval: Double = AppConfig.shared.fastInterval
     @State private var rows: Int = AppConfig.shared.gridRows
+    @State private var panelPinned: Bool = AppConfig.shared.panelPinned
     @State private var desktopWidgetOn: Bool = AppConfig.shared.desktopWidgetEnabled
     @State private var desktopWidgetSize: AppConfig.DesktopWidgetSize = AppConfig.shared.desktopWidgetSize
     @State private var launchAtLogin: Bool = SMAppService.mainApp.status == .enabled
@@ -70,6 +71,11 @@ struct SettingsView: View {
                     .monospacedDigit()
                     .frame(width: 44, alignment: .trailing)
             }
+
+            Toggle("Mantener el panel abierto al hacer clic fuera (anclado)", isOn: $panelPinned)
+                .onChange(of: panelPinned) { _, pinned in
+                    AppConfig.shared.panelPinned = pinned
+                }
 
             Divider()
 

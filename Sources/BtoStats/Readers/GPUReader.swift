@@ -39,8 +39,11 @@ final class GPUReader {
     }
 
     func read() -> Snapshot? {
-        guard service != 0,
-              let stats = Self.performanceStatistics(of: service) else { return nil }
+        guard service != 0 else { return nil }
+        var properties: Unmanaged<CFMutableDictionary>?
+        guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
+              let dict = properties?.takeRetainedValue() as? [String: Any],
+              let stats = dict["PerformanceStatistics"] as? [String: Any] else { return nil }
 
         guard let raw = (stats["Device Utilization %"] as? NSNumber)?.doubleValue
                 ?? (stats["GPU Activity(%)"] as? NSNumber)?.doubleValue,
@@ -53,16 +56,13 @@ final class GPUReader {
         let memory = (stats["In use system memory"] as? NSNumber)?.uint64Value
         return Snapshot(utilization: smoothed,
                         usedMemoryBytes: memory,
-                        lastSubmitterName: lastSubmitterName())
+                        lastSubmitterName: Self.submitterName(in: dict))
     }
 
     /// AGCInfo.fLastSubmissionPID: no hay GPU %-por-proceso sin sudo en macOS;
     /// esto al menos identifica al último proceso que mandó trabajo al driver.
-    private func lastSubmitterName() -> String? {
-        var properties: Unmanaged<CFMutableDictionary>?
-        guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-              let dict = properties?.takeRetainedValue() as? [String: Any],
-              let agc = dict["AGCInfo"] as? [String: Any],
+    private static func submitterName(in properties: [String: Any]) -> String? {
+        guard let agc = properties["AGCInfo"] as? [String: Any],
               let pid = (agc["fLastSubmissionPID"] as? NSNumber)?.int32Value, pid > 0,
               // excluirnos: el redibujado del propio panel/widget usa GPU y
               // sesgaría el muestreo hacia BtoStats

@@ -19,6 +19,7 @@ final class DesktopWidgetController: NSObject, NSWindowDelegate {
     private let model = DesktopWidgetModel()
     private var window: NSWindow?
     private var currentSize: AppConfig.DesktopWidgetSize?
+    private var currentMetricsKey = ""
 
     var isActive: Bool { window != nil }
 
@@ -29,7 +30,10 @@ final class DesktopWidgetController: NSObject, NSWindowDelegate {
             if window != nil { hide() }
             return
         }
-        if window == nil || currentSize != config.desktopWidgetSize {
+        let metricsKey = config.visibleMetrics.map(\.rawValue).joined(separator: ",")
+        if window == nil || currentSize != config.desktopWidgetSize || currentMetricsKey != metricsKey {
+            currentMetricsKey = metricsKey
+            model.refresh(from: store) // datos listos antes de medir la ventana
             show(size: config.desktopWidgetSize)
         }
         model.refresh(from: store)

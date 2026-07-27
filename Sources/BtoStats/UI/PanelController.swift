@@ -52,6 +52,13 @@ final class PanelController: NSObject, NSWindowDelegate {
             panel = newPanel
         }
         model.refresh(from: store)
+        // medir ANTES de posicionar: en la primera apertura SwiftUI aún no
+        // calculó el tamaño real y el panel se clampeaba con un frame viejo
+        // (crecía luego hacia la derecha y se cortaba contra el borde)
+        if let contentView = panel?.contentViewController?.view {
+            contentView.layoutSubtreeIfNeeded()
+            panel?.setContentSize(contentView.fittingSize)
+        }
         position(relativeTo: button)
         // El combo completo es el ÚNICO que muestra el panel de forma fiable
         // en macOS 26 (multi-pantalla/Spaces): activar la app + hacer key +
@@ -60,6 +67,9 @@ final class PanelController: NSObject, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
         panel?.makeKeyAndOrderFront(nil)
         panel?.orderFrontRegardless()
+        // segunda pasada al siguiente ciclo: si el layout ajustó el tamaño
+        // tras mostrarse, re-clampear a la pantalla
+        DispatchQueue.main.async { [weak self] in self?.position(relativeTo: button) }
         startClickOutsideMonitor()
         startProcessSampling()
     }
@@ -78,7 +88,8 @@ final class PanelController: NSObject, NSWindowDelegate {
         clickOutsideMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]
         ) { [weak self] _ in
-            guard let self, !self.pinned, let frame = self.panel?.frame else { return }
+            guard let self, !self.pinned, !AppConfig.shared.panelPinned,
+                  let frame = self.panel?.frame else { return }
             if !frame.contains(NSEvent.mouseLocation) {
                 DispatchQueue.main.async { self.close() }
             }
@@ -100,10 +111,11 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
         let buttonFrame = buttonWindow.frame
         let size = panel.frame.size
+        let visible = screen.visibleFrame
         var x = buttonFrame.midX - size.width / 2
-        x = min(max(x, screen.visibleFrame.minX + 8),
-                screen.visibleFrame.maxX - size.width - 8)
-        let y = buttonFrame.minY - size.height - 6
+        x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
+        var y = buttonFrame.minY - size.height - 6
+        y = max(y, visible.minY + 8)
         panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 

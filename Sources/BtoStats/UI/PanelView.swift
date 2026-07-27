@@ -318,8 +318,13 @@ struct PanelView: View {
     }
 
     private func confirmAndTerminate(_ sample: ProcessReader.ProcessSample) {
+        // nombre saneado: sin caracteres de control y acotado (un proceso
+        // podría llamarse algo diseñado para deformar el diálogo)
+        let safeName = String(sample.name.unicodeScalars
+            .filter { !CharacterSet.controlCharacters.contains($0) }
+            .prefix(60))
         let alert = NSAlert()
-        alert.messageText = "¿Cerrar \"\(sample.name)\" (PID \(sample.pid))?"
+        alert.messageText = "¿Cerrar \"\(safeName)\" (PID \(sample.pid))?"
         alert.informativeText = "Terminar pide el cierre educado (la app puede preguntar si guardas cambios). Forzar cierre mata el proceso al instante y puede perder datos."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Terminar")

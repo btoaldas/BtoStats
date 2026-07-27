@@ -111,14 +111,17 @@ final class ProcessReader {
         var current: [Int32: (inBytes: UInt64, outBytes: UInt64, name: String)] = [:]
 
         for line in output.split(separator: "\n").dropFirst() {
-            let parts = line.split(separator: ",", omittingEmptySubsequences: false)
-            guard parts.count >= 3,
-                  let dot = parts[0].lastIndex(of: "."),
-                  let pid = Int32(parts[0][parts[0].index(after: dot)...]),
-                  let inBytes = UInt64(parts[1]),
-                  let outBytes = UInt64(parts[2]) else { continue }
-            let name = String(parts[0][..<dot])
-            current[pid] = (inBytes, outBytes, name)
+            // formato: nombre.pid,bytes_in,bytes_out, — el nombre puede traer
+            // comas: los números se toman desde el FINAL y el resto es nombre
+            var fields = line.split(separator: ",", omittingEmptySubsequences: false)
+            if fields.last?.isEmpty == true { fields.removeLast() }
+            guard fields.count >= 3,
+                  let outBytes = UInt64(fields.removeLast()),
+                  let inBytes = UInt64(fields.removeLast()) else { continue }
+            let identifier = fields.joined(separator: ",")
+            guard let dot = identifier.lastIndex(of: "."),
+                  let pid = Int32(identifier[identifier.index(after: dot)...]) else { continue }
+            current[pid] = (inBytes, outBytes, String(identifier[..<dot]))
         }
 
         defer {

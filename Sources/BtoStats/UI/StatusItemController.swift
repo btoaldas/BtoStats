@@ -8,6 +8,7 @@ final class StatusItemController: NSObject {
     private let settingsController = SettingsWindowController()
     let panelController = PanelController()
     private var contextMenu: NSMenu?
+    private var renderCount = 0
 
     private let cpuMenuItem = NSMenuItem(title: "CPU: midiendo…", action: nil, keyEquivalent: "")
     private let memoryMenuItem = NSMenuItem(title: "RAM: midiendo…", action: nil, keyEquivalent: "")
@@ -186,6 +187,17 @@ final class StatusItemController: NSObject {
         if let network = store.network {
             networkMenuItem.attributedTitle = Self.detailTitle(
                 "Red: ↑ \(Self.rate(network.uploadBps))/s   ↓ \(Self.rate(network.downloadBps))/s")
+        }
+        renderCount += 1
+        if renderCount == 10 {
+            // sensores/GPU inexistentes en este equipo: decirlo en vez de
+            // dejar "midiendo…" para siempre
+            if store.sensors == nil {
+                sensorsMenuItem.attributedTitle = Self.detailTitle("Sensores: no disponibles en este equipo")
+            }
+            if store.gpu == nil {
+                gpuMenuItem.attributedTitle = Self.detailTitle("GPU: no disponible en este equipo")
+            }
         }
         if let disk = store.disk {
             diskMenuItem.attributedTitle = Self.detailTitle(

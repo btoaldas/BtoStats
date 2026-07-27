@@ -23,6 +23,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         startSampling()
 
+        // Modo de prueba: abre Preferencias a los 2 s (capturas del manual).
+        if ProcessInfo.processInfo.environment["BTOSTATS_TEST_SETTINGS"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                NSApp.activate(ignoringOtherApps: true)
+                SettingsWindowController().show()
+            }
+        }
+
         // Modo de prueba: abre el panel anclado a los 2 s (verificación sin UI manual).
         if ProcessInfo.processInfo.environment["BTOSTATS_TEST_PANEL"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in

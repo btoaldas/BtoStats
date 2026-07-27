@@ -8,6 +8,7 @@ import IOKit
 /// ventiladores) requiere root y puede causar sobrecalentamiento.
 final class SMC {
     private var connection: io_connect_t = 0
+    private var keyInfoCache: [UInt32: KeyData.KeyInfo] = [:]
 
     private enum Command: UInt8 {
         case readBytes = 5
@@ -110,10 +111,13 @@ final class SMC {
     // MARK: - Interno
 
     private func keyInfo(_ key: UInt32) -> KeyData.KeyInfo? {
+        if let cached = keyInfoCache[key] { return cached }
         var input = KeyData()
         input.key = key
         input.data8 = Command.readKeyInfo.rawValue
-        return call(&input)?.keyInfo
+        guard let info = call(&input)?.keyInfo else { return nil }
+        keyInfoCache[key] = info
+        return info
     }
 
     private func readRaw(key: UInt32) -> (type: String, bytes: [UInt8])? {

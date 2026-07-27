@@ -3,6 +3,9 @@ import Foundation
 /// Lee uso de CPU del sistema vía host_processor_info (sin sudo).
 /// Calcula el delta de ticks entre lecturas: la primera llamada devuelve nil.
 final class CPUReader {
+    /// mach_host_self() incrementa una referencia al port en CADA llamada:
+    /// obtenerlo una sola vez evita la fuga acumulativa.
+    private static let host = mach_host_self()
     private var previousTicks: [UInt32] = []
 
     struct Snapshot {
@@ -15,7 +18,7 @@ final class CPUReader {
         var info: processor_info_array_t?
         var infoCount: mach_msg_type_number_t = 0
 
-        let result = host_processor_info(mach_host_self(),
+        let result = host_processor_info(Self.host,
                                          PROCESSOR_CPU_LOAD_INFO,
                                          &cpuCount,
                                          &info,

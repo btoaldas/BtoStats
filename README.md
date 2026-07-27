@@ -62,6 +62,7 @@ Sin dependencias externas (SPM puro). No usar App Sandbox (bloquea el SMC).
 
 ## Documentación
 
+**[📖 Manual de uso](docs/MANUAL.md)** ·
 [Requerimientos](docs/REQUERIMIENTOS.md) ·
 [Viabilidad técnica](docs/VIABILIDAD.md) ·
 [Arquitectura](docs/ARQUITECTURA.md) ·

@@ -51,6 +51,7 @@ final class AppConfig {
         static let desktopWidgetOriginX = "desktopWidgetOriginX"
         static let desktopWidgetOriginY = "desktopWidgetOriginY"
         static let chartWindowSeconds = "chartWindowSeconds"
+        static let panelPinned = "panelPinned"
     }
 
     enum DesktopWidgetSize: String, CaseIterable, Identifiable {
@@ -131,6 +132,12 @@ final class AppConfig {
             return [60, 300, 1800, 3600].contains(value) ? value : 300
         }
         set { defaults.set(newValue, forKey: Key.chartWindowSeconds) }
+    }
+
+    /// Panel anclado: no se cierra al hacer clic fuera (OFF por defecto).
+    var panelPinned: Bool {
+        get { defaults.bool(forKey: Key.panelPinned) }
+        set { defaults.set(newValue, forKey: Key.panelPinned) }
     }
 
     /// Widget de escritorio (fase 7) — OFF por defecto, como toda feature nueva.

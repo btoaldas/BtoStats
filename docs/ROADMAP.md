@@ -68,10 +68,11 @@ reproducible antes de darse por cerrada.
       del panel, top red congelado, NaN en EMA de GPU, parseMemory sin trap.
 - [ ] Instalación en /Applications: pospuesta a fase 8/9 a pedido (se sigue
       compilando en modo dev para no duplicar instancias).
-- [ ] Mini-gráficos (sparklines) opcionales en el status item.
-- [ ] Deuda del review (menores): cache de KeyInfo SMC, mach_port_deallocate,
+- [ ] Mini-gráficos (sparklines) opcionales en el status item (backlog).
+- [x] Deuda del review (menores): cache de KeyInfo SMC, mach_port_deallocate,
       una sola copia del IORegistry por tick, sanear nombre en el diálogo,
       estado "no disponible" en menú, parser nettop con comas.
+- [x] Manual con capturas (docs/MANUAL.md).
 
 ## Fase 7 — Widget de escritorio ✅
 
@@ -81,7 +82,8 @@ reproducible antes de darse por cerrada.
       red ↑↓ + disco libre), XL (+mini gráfico de histórico CPU/RAM).
 - [x] OFF por defecto; toggle y tamaño en Preferencias (cambios en vivo);
       arrastrable con posición persistente.
-- [ ] Métricas de los anillos configurables (hoy CPU/GPU/RAM/Disk fijas).
+- [x] Métricas de los anillos configurables (respetan checks y orden de
+      Preferencias; XL con sparkline de 5 líneas). Panel anclable (opción).
 
 ## Fase 8 — Helper de administrador (opcional, OFF por defecto)
 
