@@ -114,13 +114,21 @@ Preferencias (y del panel), para no tocar la base liviana (~0.6% CPU).
 - [x] v1.5-A: infra "Avanzadas" (pestañas en Preferencias) + colores dinámicos
       por umbral en la barra (amarillo/rojo) + umbrales configurables (CPU/temp).
       Motor AlertLevel/MetricThresholds reutilizable.
-- [ ] Alertas: notificación nativa al cruzar el umbral crítico (toggle ya está).
-- [ ] Wi-Fi detallado (banda/canal/RSSI/SSID) en pestaña Avanzadas del panel.
-- [ ] Watts + batería (IOReport), ANE, frecuencias GHz, CPU por clúster.
-- [ ] Disco I/O MB/s + salud SSD; Bluetooth; swap/comprimida; uptime/load.
-- [ ] Histórico persistente día/mes (SQLite). Ethernet. Sparklines en la barra.
-- [ ] Widget de escritorio tamaño XXL (más grande que XL).
-- [ ] Pestaña "Avanzadas" también en el panel del monitor en vivo.
+- [x] Alertas: notificación nativa al cruzar el umbral crítico.
+- [x] Pestaña "Avanzadas" en el panel del monitor en vivo.
+- [x] Wi-Fi detallado (banda/canal/RSSI/SSID) — verificado vs system_profiler.
+- [x] Watts CPU/GPU/ANE (IOReport, bridging C propio) — verificado sube con carga.
+- [x] Batería (IOKit): % , salud, ciclos, watts, temp — verificado vs pmset.
+- [x] CPU por clúster (Super/Performance) — verificado vs hw.perflevel.
+- [x] Disco I/O MB/s (IOBlockStorageDriver) — verificado 25 MB/s con escritura.
+- [x] Bluetooth (batería de dispositivos HID). Swap/comprimida, uptime/load/procesos.
+- [x] Histórico persistente día/semana/mes (archivo binario) — verificado persiste.
+- [x] Sparkline de CPU en la barra. Widget XXL (con energía).
+- [ ] Frecuencias GHz (CPU/GPU) y salud SSD: NO hechas — IOReport de frecuencias
+      (tablas dvfm) es frágil y da riesgo de valores incorrectos; SSD SMART es
+      poco accesible. Se prefirió no mostrar datos dudosos. Ethernet: pendiente.
+
+Base con todo OFF: 0.4 % CPU, 46 MB (extras opt-in no tocan la base liviana).
 
 ## Backlog (otros)
 
