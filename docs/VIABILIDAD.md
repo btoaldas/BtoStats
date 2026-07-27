@@ -15,7 +15,7 @@ acción de las fases 1-5 necesita helper privilegiado.
 | CPU % total | `host_statistics(HOST_CPU_LOAD_INFO)` | 0.5 µs | 1 s |
 | CPU % por core | `host_processor_info(PROCESSOR_CPU_LOAD_INFO)` | 4.5 µs | 1 s, solo con panel abierto |
 | RAM + presión | `host_statistics64(HOST_VM_INFO64)` + `kern.memorystatus_vm_pressure_level` | 1.4 µs | 1–2 s |
-| Red ↑↓ | `sysctl NET_RT_IFLIST2` → `if_data64` (64-bit) | 22 µs | 1 s |
+| Red ↑↓ | `sysctl IFMIB_IFDATA` por interfaz → `ifmibdata.ifmd_data` (64-bit real) | ~25 µs | 1 s |
 | Disco | `statfs` + `volumeAvailableCapacityForImportantUsage` | 0.5 µs | 30–60 s |
 
 Costo total de sondeo ≈ 30 µs/s ≈ 0.003 % de un core. El consumo real lo dominará el
@@ -25,9 +25,14 @@ redibujado del status item — ahí hay que optimizar, no en los readers.
 - `vm_deallocate` del array de `host_processor_info` en CADA ciclo o hay leak.
 - Ticks UInt32 → deltas con `&-` (overflow-safe).
 - Page size en Apple Silicon = **16384**: usar `vm_page_size`, jamás 4096.
-- Red: NO usar `getifaddrs`/`if_data` como fuente (contadores 32-bit, wrap cada 4 GiB →
-  picos falsos). `NET_RT_IFLIST2` es 64-bit. Filtrar `lo0`, `utun*` (VPN dobla tráfico),
-  `awdl0`. Interfaz primaria: `SCDynamicStore "State:/Network/Global/IPv4"`.
+- Red — hallazgo propio [V]: en macOS 26, `NET_RT_IFLIST2` entrega `ifi_ibytes/ifi_obytes`
+  **truncados a 32 bits a binarios de terceros** (coinciden con netstat módulo 2³²; los
+  binarios de Apple y el intérprete de Swift sí reciben 64 bits). NO usarlo. Tampoco
+  `getifaddrs`/`if_data` (32-bit por diseño). **Fuente correcta: sysctl
+  `{CTL_NET, PF_LINK, NETLINK_GENERIC, IFMIB_IFDATA, index, IFDATA_GENERAL}`** →
+  `ifmibdata.ifmd_data` (if_data64 real; verificado idéntico byte a byte a netstat).
+  Filtrar `lo0`, `utun*` (VPN dobla tráfico), `awdl0`, `llw0`, `gif/stf/bridge/ap`.
+  Interfaz primaria: `SCDynamicStore "State:/Network/Global/IPv4"`.
 - Descartar la primera muestra de cada delta (CPU y red).
 - Topología [V]: `hw.nperflevels=2`; en M5 Pro perflevel0=**"Super"** (6 cores),
   perflevel1="Performance" (12). En M5 NO existen nombres "Efficiency/E-cores" —

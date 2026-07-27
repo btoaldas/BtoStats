@@ -9,12 +9,14 @@ reproducible antes de darse por cerrada.
 - [x] CPU % real (host_processor_info) y RAM % real (host_statistics64).
 - [x] Menú con detalle y salida. Lecturas contrastadas contra iStat Menus (coinciden).
 
-## Fase 1 — Métricas núcleo completas
+## Fase 1 — Métricas núcleo completas ✅
 
-- [ ] Red ↑↓ B/s (deltas de contadores de interfaz, NET_RT_IFLIST2).
-- [ ] Disco: total/libre por volumen.
-- [ ] Registro histórico corto en memoria (ring buffer por métrica) para gráficos.
-- [ ] Refactor a Sampler/MetricStore (ver ARQUITECTURA.md).
+- [x] Red ↑↓ B/s (sysctl IFMIB_IFDATA, 64-bit; NET_RT_IFLIST2 descartado por
+      truncamiento a 32 bits en macOS 26 — ver VIABILIDAD §1).
+- [x] Disco: total / libre real / disponible estilo Finder (verificado contra df).
+- [x] Histórico corto en memoria (RingBuffer, 300 muestras) para gráficos.
+- [x] Refactor a Sampler (2 relojes) / MetricStore / StatusItemController.
+- [x] Modo `--sample` para verificación numérica por terminal.
 
 ## Fase 2 — Sensores y GPU
 

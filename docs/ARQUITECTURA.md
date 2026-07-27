@@ -82,9 +82,9 @@ Sources/BetoStats/
   Actions/  ProcessKiller.swift, MemoryAdvisor.swift
 ```
 
-## Deudas conocidas de la fase 0
+## Deudas conocidas
 
-- `AppDelegate` concentra timer+render → migrar a Sampler/MetricStore en fase 1.
 - Fórmula RAM propia vs. la de stats: comparar ambas contra Activity Monitor y elegir
   (documentado en VIABILIDAD §1).
 - Falta manejo del permiso "Menu Bar" de macOS 26 en el primer arranque.
+- Columna de disco: alinear el valor de la fila inferior cuando no hay label.
