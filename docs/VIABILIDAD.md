@@ -141,3 +141,30 @@ redibujado del status item — ahí hay que optimizar, no en los readers.
   necesita aquí.
 - **iGlance: GPL-3.0 y abandonado — no copiar código** (contaminaría la licencia).
   eul: licencia permisiva (de ese proyecto) pero inactivo desde 2024 (pre-M5) — solo inspiración de UI.
+
+
+## 7. Helper de administrador — notas de seguridad (fase 8)
+
+Daemon root vía `SMAppService.daemon` + NSXPC, superficie de 3 operaciones
+cerradas. Un security review adversarial (4 revisores + verificación) encontró
+y se corrigió:
+
+- **[CRÍTICO, corregido]** Sin hardened runtime, `DYLD_INSERT_LIBRARIES` permitía
+  inyectar código en el cliente legítimo y hablarle al helper como root. Fix:
+  `codesign --options runtime` en app y helper — activa library validation
+  incluso con firma ad hoc; dyld deja de honrar variables DYLD. Verificado:
+  `flags=0x10002(adhoc,runtime)`.
+- **[ALTO, corregido]** Validación XPC por PID/ruta era vulnerable a reuso de
+  PID/TOCTOU. Fix: `setCodeSigningRequirement` (audit token en el kernel) +
+  ruta como defensa en profundidad.
+- **[ALTO, corregido]** `expectedName` vacío anulaba el guard anti pid-reuse;
+  y se podía matar daemons críticos. Fix: se exige nombre (≥2 chars) y una
+  lista de procesos protegidos (launchd, WindowServer, securityd, …) que el
+  helper nunca mata.
+
+**Límite honesto**: con firma **ad hoc** (sin Developer ID) el code requirement
+por identifier es teóricamente forjable por un atacante local que ya ejecuta
+código como el usuario; el hardened runtime es el control que realmente cierra
+la inyección. Para distribución más allá del uso personal: firmar con Developer
+ID y notarizar. Para el uso personal de este proyecto, con el helper OFF por
+defecto, el riesgo residual es aceptable.

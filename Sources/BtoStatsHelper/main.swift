@@ -10,18 +10,21 @@ final class HelperDelegate: NSObject, NSXPCListenerDelegate, BtoStatsHelperProto
 
     func listener(_ listener: NSXPCListener,
                   shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
-        // Solo acepta conexiones del binario de la app instalada.
-        // NOTA: con firma ad hoc no hay Team ID que exigir por code requirement;
-        // se valida la ruta real del ejecutable del proceso conectante. Para
-        // distribución más allá de uso personal: firmar con Developer ID y
-        // migrar a setCodeSigningRequirement.
-        var buffer = [CChar](repeating: 0, count: 4096)
-        guard proc_pidpath(connection.processIdentifier, &buffer, UInt32(buffer.count)) > 0 else {
-            return false
+        // Validación por AUDIT TOKEN (no por PID, que sufre reuso/TOCTOU):
+        // setCodeSigningRequirement evalúa el requirement contra el token del
+        // peer dentro del kernel. Con hardened runtime + library validation el
+        // binario legítimo no puede cargar código inyectado, así que exigir su
+        // identidad de firma es suficiente. Requisito: mismo ejecutable ad hoc.
+        let requirement = "identifier \"ec.bto.BtoStats\" and anchor apple generic"
+            + " or identifier \"ec.bto.BtoStats\""
+        if #available(macOS 13.0, *) {
+            connection.setCodeSigningRequirement(requirement)
         }
-        let clientPath = String(cString: buffer)
-        guard clientPath == HelperConstants.expectedClientPath else {
-            NSLog("BtoStatsHelper: conexión rechazada de \(clientPath)")
+        // Defensa en profundidad: además, la ruta del ejecutable del peer.
+        var buffer = [CChar](repeating: 0, count: 4096)
+        guard proc_pidpath(connection.processIdentifier, &buffer, UInt32(buffer.count)) > 0,
+              String(cString: buffer) == HelperConstants.expectedClientPath else {
+            NSLog("BtoStatsHelper: conexión rechazada")
             return false
         }
         connection.exportedInterface = NSXPCInterface(with: BtoStatsHelperProtocol.self)
@@ -29,6 +32,15 @@ final class HelperDelegate: NSObject, NSXPCListenerDelegate, BtoStatsHelperProto
         connection.resume()
         return true
     }
+
+    /// Nombres de procesos del sistema que el helper NUNCA debe matar (matarlos
+    /// cuelga o compromete la sesión). Defensa propia, además de la UI.
+    private static let protectedNames: Set<String> = [
+        "launchd", "kernel_task", "WindowServer", "loginwindow", "logind",
+        "coreaudiod", "configd", "securityd", "syslogd", "opendirectoryd",
+        "distnoted", "notifyd", "cfprefsd", "mds", "mds_stores", "diskarbitrationd",
+        "powerd", "watchdogd", "systemstats", "UserEventAgent", "hidd",
+    ]
 
     // MARK: - Operaciones
 
@@ -74,12 +86,19 @@ final class HelperDelegate: NSObject, NSXPCListenerDelegate, BtoStatsHelperProto
     func terminateProcess(pid: Int32, force: Bool, expectedName: String,
                           reply: @escaping (String) -> Void) {
         guard pid > 1 else { reply("pid inválido"); return } // jamás launchd/init
+        // expectedName vacío anularía el guard anti pid-reuse: rechazar.
+        let expected = expectedName.trimmingCharacters(in: .whitespaces)
+        guard expected.count >= 2 else { reply("nombre de proceso requerido"); return }
         var buffer = [CChar](repeating: 0, count: 1024)
         guard proc_name(pid, &buffer, UInt32(buffer.count)) > 0 else {
             reply("el proceso ya no existe"); return
         }
         let actual = String(cString: buffer)
-        guard actual.hasPrefix(expectedName) || expectedName.hasPrefix(actual) else {
+        // No matar procesos críticos del sistema.
+        guard !Self.protectedNames.contains(actual) else {
+            reply("\(actual) es un proceso crítico del sistema y no se puede cerrar"); return
+        }
+        guard actual == expected else {
             reply("el PID ahora pertenece a otro proceso (\(actual))"); return
         }
         reply(kill(pid, force ? SIGKILL : SIGTERM) == 0 ? "ok"

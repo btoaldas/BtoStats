@@ -54,9 +54,13 @@ cat > "$APP/Contents/Library/LaunchDaemons/${HELPER_ID}.plist" <<PLIST
 PLIST
 
 # Firmar helper primero, luego la app (orden requerido).
-codesign --force --sign - "$APP/Contents/MacOS/${HELPER_ID}"
-codesign --force --deep --sign - "$APP"
-codesign --verify --verbose=2 "$APP"
+# --options runtime (hardened runtime): activa library validation incluso con
+# firma ad hoc → dyld deja de honrar DYLD_INSERT_LIBRARIES, cerrando la vía de
+# escalada a root por inyección en el cliente (security review, crítico).
+codesign --force --options runtime --sign - "$APP/Contents/MacOS/${HELPER_ID}"
+codesign --force --options runtime --sign - "$APP/Contents/MacOS/BtoStats"
+codesign --force --options runtime --sign - "$APP"
+codesign --verify --strict --verbose=2 "$APP"
 
 cd dist && zip -qry "BtoStats-${VERSION}.zip" BtoStats.app && cd ..
 echo "Listo: $APP y dist/BtoStats-${VERSION}.zip"
