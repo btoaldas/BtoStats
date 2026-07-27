@@ -5,6 +5,12 @@ import SwiftUI
 /// las ventanas normales, visible en todos los espacios, arrastrable, con
 /// posición persistente. (WidgetKit no permite refresh de ~1 s — por eso es
 /// una ventana propia; ver docs/REQUERIMIENTOS.md R7.)
+/// NSWindow borderless no acepta ser key por defecto y sin eso el arrastre
+/// por el fondo no funciona.
+private final class DraggableWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+}
+
 final class DesktopWidgetController: NSObject, NSWindowDelegate {
     private let model = DesktopWidgetModel()
     private var window: NSWindow?
@@ -28,13 +34,16 @@ final class DesktopWidgetController: NSObject, NSWindowDelegate {
     private func show(size: AppConfig.DesktopWidgetSize) {
         hide()
         let hosting = NSHostingController(rootView: DesktopWidgetView(model: model, size: size))
-        let newWindow = NSWindow(contentViewController: hosting)
+        let newWindow = DraggableWindow(contentViewController: hosting)
         newWindow.styleMask = [.borderless]
         newWindow.isOpaque = false
         newWindow.backgroundColor = .clear
         newWindow.hasShadow = true
         newWindow.isMovableByWindowBackground = true
-        newWindow.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)) + 1)
+        // Sobre la capa de ICONOS del Finder (que cubre toda la pantalla e
+        // intercepta los clics — con desktop+1 el widget no se podía arrastrar
+        // y los archivos del escritorio lo tapaban), pero bajo ventanas normales.
+        newWindow.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
         newWindow.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         newWindow.isReleasedWhenClosed = false
         newWindow.delegate = self

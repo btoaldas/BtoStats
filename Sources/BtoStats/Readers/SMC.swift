@@ -3,7 +3,7 @@ import IOKit
 
 /// Cliente SMC de SOLO LECTURA (temperaturas, ventiladores).
 /// Estructura de llamada portada del enfoque de exelban/stats (proyecto de
-/// terceros bajo licencia licencia permisiva; BtoStats es PolyForm Strict — ver LICENSE).
+/// terceros con licencia permisiva; BtoStats es PolyForm Strict — ver LICENSE).
 /// Deliberadamente sin métodos de escritura: escribir al SMC (control de
 /// ventiladores) requiere root y puede causar sobrecalentamiento.
 final class SMC {
