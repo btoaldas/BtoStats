@@ -63,6 +63,7 @@ final class PanelModel: ObservableObject {
     @Published var cpuWatts: Double? = nil
     @Published var gpuWatts: Double? = nil
     @Published var aneWatts: Double? = nil
+    @Published var cpuClusters: [(name: String, usage: Double)] = []
 
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
@@ -72,6 +73,7 @@ final class PanelModel: ObservableObject {
         if let cpu = store.cpu {
             cpuUsage = cpu.totalUsage
             coreCount = cpu.perCore.count
+            cpuClusters = cpu.clusters
         }
         if let memory = store.memory {
             memoryUsedGB = memory.usedBytes / 1e9

@@ -86,6 +86,15 @@ if runningCopies.count > 1 {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--clusters") {
+    let r = CPUReader(); _ = r.read(); Thread.sleep(forTimeInterval: 1)
+    if let s = r.read() {
+        print("total: \(Int(s.totalUsage*100))%  cores: \(s.perCore.count)")
+        for c in s.clusters { print("  \(c.name): \(Int(c.usage*100))%") }
+    }
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--power") {
     let r = PowerReader()
     _ = r.read()

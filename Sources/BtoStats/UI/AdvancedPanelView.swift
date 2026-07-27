@@ -17,6 +17,13 @@ struct AdvancedPanelView: View {
                         row("Neural Engine (ANE)", model.aneWatts.map { String(format: "%.1f W", $0) } ?? "—")
                     }
                 }
+                if !model.cpuClusters.isEmpty {
+                    section("CPU por clúster") {
+                        ForEach(model.cpuClusters, id: \.name) { c in
+                            row(c.name, String(format: "%.0f%%", c.usage * 100))
+                        }
+                    }
+                }
                 section("Sistema") {
                     row("Encendido hace", uptimeText)
                     row("Carga (1·5·15 min)", String(format: "%.2f · %.2f · %.2f",

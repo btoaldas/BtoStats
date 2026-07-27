@@ -11,7 +11,30 @@ final class CPUReader {
     struct Snapshot {
         let totalUsage: Double        // 0.0 – 1.0
         let perCore: [Double]         // 0.0 – 1.0 por núcleo
+        let clusters: [(name: String, usage: Double)] // promedio por clúster
     }
+
+    /// Topología de clústeres (nombre + nº de cores), leída una vez.
+    /// En M5 Pro: "Super" (6) + "Performance" (12).
+    private static let topology: [(name: String, cores: Int)] = {
+        func sysctlInt(_ name: String) -> Int {
+            var value = 0; var size = MemoryLayout<Int>.size
+            return sysctlbyname(name, &value, &size, nil, 0) == 0 ? value : 0
+        }
+        func sysctlString(_ name: String) -> String {
+            var size = 0
+            guard sysctlbyname(name, nil, &size, nil, 0) == 0, size > 0 else { return "" }
+            var buf = [CChar](repeating: 0, count: size)
+            sysctlbyname(name, &buf, &size, nil, 0)
+            return String(cString: buf)
+        }
+        let levels = sysctlInt("hw.nperflevels")
+        guard levels > 0 else { return [] }
+        return (0..<levels).map { i in
+            (name: sysctlString("hw.perflevel\(i).name"),
+             cores: sysctlInt("hw.perflevel\(i).logicalcpu"))
+        }
+    }()
 
     func read() -> Snapshot? {
         var cpuCount: natural_t = 0
@@ -59,7 +82,20 @@ final class CPUReader {
         }
 
         previousTicks = current
+
+        // Agrupar por clúster: el nivel de mayor rendimiento ocupa los índices
+        // menores (convención M-series verificada).
+        var clusters: [(name: String, usage: Double)] = []
+        var offset = 0
+        for level in Self.topology where level.cores > 0 {
+            let slice = perCore[offset..<min(offset + level.cores, perCore.count)]
+            if !slice.isEmpty {
+                clusters.append((level.name, slice.reduce(0, +) / Double(slice.count)))
+            }
+            offset += level.cores
+        }
+
         return Snapshot(totalUsage: allTotal > 0 ? busyTotal / allTotal : 0,
-                        perCore: perCore)
+                        perCore: perCore, clusters: clusters)
     }
 }
