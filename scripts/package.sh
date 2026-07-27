@@ -29,7 +29,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleVersion</key><string>${VERSION}</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
-    <key>NSHumanReadableCopyright</key><string>PolyForm Strict 1.0.0</string>
+    <key>NSHumanReadableCopyright</key><string>© 2026 btoaldas — PolyForm Strict 1.0.0</string>
 </dict>
 </plist>
 PLIST

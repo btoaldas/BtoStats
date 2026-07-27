@@ -74,4 +74,13 @@ El enfoque de lectura del SMC y varios patrones de widgets se estudiaron de
 
 ## Licencia
 
-PolyForm Strict 1.0.0 (source-available).
+**PolyForm Strict 1.0.0** (source-available). En corto:
+
+- ✅ Gratis: ver el código, descargarlo y usarlo para fines personales y no comerciales.
+- ❌ Prohibido venderlo o usarlo comercialmente.
+- ❌ Prohibido redistribuir copias o publicar versiones modificadas.
+- ✍️ ¿Quieres mejorarlo, integrarlo o comercializarlo? Se necesita autorización
+  explícita del autor ([btoaldas](https://github.com/btoaldas)). Las contribuciones
+  se aceptan solo con aprobación previa.
+
+Texto completo en [LICENSE](LICENSE). 
