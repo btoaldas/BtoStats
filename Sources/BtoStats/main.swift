@@ -86,6 +86,14 @@ if runningCopies.count > 1 {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--wifi") {
+    if let w = WiFiReader().read() {
+        print("SSID: \(w.ssid ?? "?")  banda: \(w.bandGHz) GHz  canal: \(w.channel)")
+        print("RSSI: \(w.rssiDBm) dBm (\(w.signalQuality)%)  ruido: \(w.noiseDBm) dBm  tx: \(w.txRateMbps) Mbps")
+    } else { print("Wi-Fi no activo") }
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--system") {
     let sys = SystemReader().read()
     let h = Int(sys.uptimeSeconds) / 3600, m = (Int(sys.uptimeSeconds) % 3600) / 60

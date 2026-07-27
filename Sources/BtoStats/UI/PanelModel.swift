@@ -42,6 +42,13 @@ final class PanelModel: ObservableObject {
     @Published var swapUsedGB: Double = 0
     @Published var swapTotalGB: Double = 0
     @Published var compressedGB: Double = 0
+    @Published var wifiSSID: String = "—"
+    @Published var wifiBand: String = "—"
+    @Published var wifiChannel: Int = 0
+    @Published var wifiRSSI: Int = 0
+    @Published var wifiQuality: Int = 0
+    @Published var wifiTxMbps: Double = 0
+    @Published var wifiActive: Bool = false
 
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
@@ -76,6 +83,17 @@ final class PanelModel: ObservableObject {
         if let disk = store.disk {
             diskAvailable = disk.availableBytes
             diskTotal = disk.totalBytes
+        }
+        if let wifi = store.wifi {
+            wifiActive = true
+            wifiSSID = wifi.ssid ?? "(oculto)"
+            wifiBand = wifi.bandGHz
+            wifiChannel = wifi.channel
+            wifiRSSI = wifi.rssiDBm
+            wifiQuality = wifi.signalQuality
+            wifiTxMbps = wifi.txRateMbps
+        } else {
+            wifiActive = false
         }
         if let sys = store.system {
             uptimeSeconds = sys.uptimeSeconds

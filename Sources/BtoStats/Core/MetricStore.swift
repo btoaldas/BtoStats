@@ -12,6 +12,7 @@ final class MetricStore {
     private(set) var gpu: GPUReader.Snapshot?
     private(set) var sensors: SensorsReader.Snapshot?
     private(set) var system: SystemReader.Snapshot?
+    private(set) var wifi: WiFiReader.Snapshot?
 
     private(set) var cpuHistory = MetricSeries()
     private(set) var memoryHistory = MetricSeries()
@@ -61,4 +62,6 @@ final class MetricStore {
     func updateSystem(_ system: SystemReader.Snapshot?) {
         if let system { self.system = system }
     }
+
+    func updateWiFi(_ wifi: WiFiReader.Snapshot?) { self.wifi = wifi }
 }

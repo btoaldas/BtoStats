@@ -16,6 +16,18 @@ struct AdvancedPanelView: View {
                         model.loadAverage.0, model.loadAverage.1, model.loadAverage.2))
                     row("Procesos", "\(model.processCount)")
                 }
+                if model.wifiActive {
+                    section("Wi-Fi") {
+                        row("Red", model.wifiSSID)
+                        row("Banda · canal", "\(model.wifiBand) GHz · \(model.wifiChannel)")
+                        row("Señal", "\(model.wifiRSSI) dBm (\(model.wifiQuality)%)")
+                        row("Velocidad de enlace", String(format: "%.0f Mbps", model.wifiTxMbps))
+                        if model.wifiBand == "2.4" {
+                            Text("Estás en la banda 2.4 GHz (lenta y congestionada). Si el router tiene 5/6 GHz, conéctate a esa red para más velocidad.")
+                                .font(.caption).foregroundStyle(.orange)
+                        }
+                    }
+                }
                 section("Memoria (detalle)") {
                     row("Comprimida", String(format: "%.1f GB", model.compressedGB))
                     row("Swap", model.swapTotalGB > 0
