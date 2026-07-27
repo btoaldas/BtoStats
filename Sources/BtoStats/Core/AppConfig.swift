@@ -172,6 +172,42 @@ final class AppConfig {
         disabledMetrics = set
     }
 
+    // MARK: - Colores dinámicos y umbrales (v1.1)
+
+    /// El valor en la barra cambia de color según su umbral. OFF por defecto:
+    /// las features nuevas son opt-in para no tocar la experiencia base liviana.
+    var dynamicColorsEnabled: Bool {
+        get { defaults.bool(forKey: "dynamicColors") }
+        set { defaults.set(newValue, forKey: "dynamicColors") }
+    }
+
+    /// Notificaciones cuando una métrica cruza su umbral crítico (OFF por defecto).
+    var alertsEnabled: Bool {
+        get { defaults.bool(forKey: "alertsEnabled") }
+        set { defaults.set(newValue, forKey: "alertsEnabled") }
+    }
+
+    /// Umbral de una métrica. Unidades: fracción 0-1 (cpu/memory), 0-100
+    /// (gpu/temperature), GB libres (diskFree). Defaults razonables de laptop.
+    static let defaultThresholds: [MetricID: (warning: Double, critical: Double)] = [
+        .cpu: (0.70, 0.90),
+        .memory: (0.80, 0.92),
+        .gpu: (80, 95),
+        .temperature: (80, 92),
+        .diskFree: (20, 10),
+    ]
+
+    func threshold(_ metric: MetricID, _ level: AlertLevel) -> Double {
+        let key = "threshold.\(metric.rawValue).\(level == .critical ? "crit" : "warn")"
+        if defaults.object(forKey: key) != nil { return defaults.double(forKey: key) }
+        let d = Self.defaultThresholds[metric] ?? (0, 0)
+        return level == .critical ? d.critical : d.warning
+    }
+
+    func setThreshold(_ metric: MetricID, _ level: AlertLevel, _ value: Double) {
+        defaults.set(value, forKey: "threshold.\(metric.rawValue).\(level == .critical ? "crit" : "warn")")
+    }
+
     func notifyChanged() {
         NotificationCenter.default.post(name: Self.changedNotification, object: nil)
     }

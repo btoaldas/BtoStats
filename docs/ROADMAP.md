@@ -106,10 +106,22 @@ operaciones cerradas, jamás un shell privilegiado — ver VIABILIDAD §4).
 - [x] Instalar BtoStats.app en /Applications; instancia única verificada.
 - [x] Release v1.0.0.
 
-## Backlog (post-1.0, cuando pique el gusanillo)
+## v1.5+ — Extras opcionales (opt-in, pestaña "Avanzadas")
+
+REGLA: todo extra nuevo va OFF por defecto en la pestaña "Avanzadas" de
+Preferencias (y del panel), para no tocar la base liviana (~0.6% CPU).
+
+- [x] v1.5-A: infra "Avanzadas" (pestañas en Preferencias) + colores dinámicos
+      por umbral en la barra (amarillo/rojo) + umbrales configurables (CPU/temp).
+      Motor AlertLevel/MetricThresholds reutilizable.
+- [ ] Alertas: notificación nativa al cruzar el umbral crítico (toggle ya está).
+- [ ] Wi-Fi detallado (banda/canal/RSSI/SSID) en pestaña Avanzadas del panel.
+- [ ] Watts + batería (IOReport), ANE, frecuencias GHz, CPU por clúster.
+- [ ] Disco I/O MB/s + salud SSD; Bluetooth; swap/comprimida; uptime/load.
+- [ ] Histórico persistente día/mes (SQLite). Ethernet. Sparklines en la barra.
+- [ ] Widget de escritorio tamaño XXL (más grande que XL).
+- [ ] Pestaña "Avanzadas" también en el panel del monitor en vivo.
+
+## Backlog (otros)
 
 - Widget para la galería nativa "Editar widgets" (WidgetKit, versión lenta).
-- Consumo de energía en watts (vía helper / IOReport).
-- Histórico de día/mes en gráficas (persistencia a disco).
-- Ancho de banda del enlace Ethernet (hoy solo Wi-Fi).
-- Sparklines opcionales en el status item.

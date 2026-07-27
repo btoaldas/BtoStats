@@ -1,8 +1,9 @@
 import SwiftUI
 import ServiceManagement
 
-/// Ventana de preferencias: checks por métrica, orden (arrastrar), cadencia
-/// y arranque al iniciar sesión.
+/// Ventana de preferencias con pestañas: General (lo esencial, liviano) y
+/// Avanzadas (extras opt-in — colores dinámicos, alertas, umbrales — que no
+/// tocan la experiencia base).
 struct SettingsView: View {
     @State private var order: [MetricID] = AppConfig.shared.metricOrder
     @State private var disabled: Set<MetricID> = AppConfig.shared.disabledMetrics
@@ -16,145 +17,183 @@ struct SettingsView: View {
     @State private var helperError: String?
     @State private var launchError: String?
 
-    /// SMAppService requiere que la app corra como bundle .app (fase 6).
+    // Avanzadas (opt-in)
+    @State private var dynamicColors: Bool = AppConfig.shared.dynamicColorsEnabled
+    @State private var alertsEnabled: Bool = AppConfig.shared.alertsEnabled
+    @State private var cpuWarn: Double = AppConfig.shared.threshold(.cpu, .warning) * 100
+    @State private var cpuCrit: Double = AppConfig.shared.threshold(.cpu, .critical) * 100
+    @State private var tempWarn: Double = AppConfig.shared.threshold(.temperature, .warning)
+    @State private var tempCrit: Double = AppConfig.shared.threshold(.temperature, .critical)
+
     private var isBundled: Bool { Bundle.main.bundleURL.pathExtension == "app" }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Celdas de la cuadrícula")
-                .font(.headline)
-            Text("Activa las métricas que quieras ver; arrastra para cambiar el orden. Se agrupan de a dos por columna.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        TabView {
+            generalTab
+                .tabItem { Label("General", systemImage: "gauge") }
+            advancedTab
+                .tabItem { Label("Avanzadas", systemImage: "slider.horizontal.3") }
+        }
+        .frame(width: 440, height: 560)
+        .padding(.top, 6)
+    }
 
-            List {
-                ForEach(order) { metric in
-                    HStack {
-                        Toggle(metric.displayName, isOn: binding(for: metric))
-                        Spacer()
-                        Button { move(metric, by: -1) } label: { Image(systemName: "chevron.up") }
-                            .buttonStyle(.borderless)
-                            .disabled(order.first == metric)
-                        Button { move(metric, by: 1) } label: { Image(systemName: "chevron.down") }
-                            .buttonStyle(.borderless)
-                            .disabled(order.last == metric)
+    // MARK: - General
+
+    private var generalTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Celdas de la cuadrícula").font(.headline)
+                Text("Activa las métricas que quieras ver; arrastra o usa las flechas para el orden.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                List {
+                    ForEach(order) { metric in
+                        HStack {
+                            Toggle(metric.displayName, isOn: binding(for: metric))
+                            Spacer()
+                            Button { move(metric, by: -1) } label: { Image(systemName: "chevron.up") }
+                                .buttonStyle(.borderless).disabled(order.first == metric)
+                            Button { move(metric, by: 1) } label: { Image(systemName: "chevron.down") }
+                                .buttonStyle(.borderless).disabled(order.last == metric)
+                        }
                     }
-                }
-                .onMove { source, destination in
-                    order.move(fromOffsets: source, toOffset: destination)
-                    AppConfig.shared.metricOrder = order
-                    AppConfig.shared.notifyChanged()
-                }
-            }
-            .frame(height: 230)
-
-            Divider()
-
-            Picker("Filas de la cuadrícula", selection: $rows) {
-                Text("2 (normal)").tag(2)
-                Text("3 (pequeña)").tag(3)
-                Text("4 (mini)").tag(4)
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: rows) { _, newValue in
-                AppConfig.shared.gridRows = newValue
-                AppConfig.shared.notifyChanged()
-            }
-
-            HStack {
-                Text("Refresco")
-                Slider(value: $interval, in: 1...5, step: 0.5) { editing in
-                    if !editing {
-                        AppConfig.shared.fastInterval = interval
+                    .onMove { source, destination in
+                        order.move(fromOffsets: source, toOffset: destination)
+                        AppConfig.shared.metricOrder = order
                         AppConfig.shared.notifyChanged()
                     }
                 }
-                Text(String(format: "%.1f s", interval))
-                    .monospacedDigit()
-                    .frame(width: 44, alignment: .trailing)
-            }
+                .frame(height: 220)
 
-            Toggle("Mantener el panel abierto al hacer clic fuera (anclado)", isOn: $panelPinned)
-                .onChange(of: panelPinned) { _, pinned in
-                    AppConfig.shared.panelPinned = pinned
+                Divider()
+
+                Picker("Filas de la cuadrícula", selection: $rows) {
+                    Text("2 (normal)").tag(2)
+                    Text("3 (pequeña)").tag(3)
+                    Text("4 (mini)").tag(4)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: rows) { _, v in
+                    AppConfig.shared.gridRows = v; AppConfig.shared.notifyChanged()
                 }
 
-            Divider()
-
-            Toggle("Widget de escritorio (anillos en tiempo real)", isOn: $desktopWidgetOn)
-                .onChange(of: desktopWidgetOn) { _, enabled in
-                    AppConfig.shared.desktopWidgetEnabled = enabled
-                    AppConfig.shared.notifyChanged()
+                HStack {
+                    Text("Refresco")
+                    Slider(value: $interval, in: 1...5, step: 0.5) { editing in
+                        if !editing { AppConfig.shared.fastInterval = interval; AppConfig.shared.notifyChanged() }
+                    }
+                    Text(String(format: "%.1f s", interval)).monospacedDigit().frame(width: 44, alignment: .trailing)
                 }
-            if desktopWidgetOn {
-                Picker("Tamaño del widget", selection: $desktopWidgetSize) {
-                    ForEach(AppConfig.DesktopWidgetSize.allCases) { size in
-                        Text(size.displayName).tag(size)
+
+                Toggle("Mantener el panel abierto al hacer clic fuera (anclado)", isOn: $panelPinned)
+                    .onChange(of: panelPinned) { _, v in AppConfig.shared.panelPinned = v }
+
+                Divider()
+
+                Toggle("Widget de escritorio (anillos en tiempo real)", isOn: $desktopWidgetOn)
+                    .onChange(of: desktopWidgetOn) { _, v in
+                        AppConfig.shared.desktopWidgetEnabled = v; AppConfig.shared.notifyChanged()
+                    }
+                if desktopWidgetOn {
+                    Picker("Tamaño del widget", selection: $desktopWidgetSize) {
+                        ForEach(AppConfig.DesktopWidgetSize.allCases) { s in Text(s.displayName).tag(s) }
+                    }
+                    .onChange(of: desktopWidgetSize) { _, v in
+                        AppConfig.shared.desktopWidgetSize = v; AppConfig.shared.notifyChanged()
                     }
                 }
-                .onChange(of: desktopWidgetSize) { _, newSize in
-                    AppConfig.shared.desktopWidgetSize = newSize
-                    AppConfig.shared.notifyChanged()
-                }
-                Text("Arrástralo por el fondo para ubicarlo; la posición se recuerda.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
 
-            Toggle("Abrir al iniciar sesión", isOn: $launchAtLogin)
-                .disabled(!isBundled)
-                .onChange(of: launchAtLogin) { _, enabled in
-                    guard isBundled else { return }
-                    do {
-                        if enabled {
-                            try SMAppService.mainApp.register()
-                        } else {
-                            try SMAppService.mainApp.unregister()
+                Toggle("Abrir al iniciar sesión", isOn: $launchAtLogin)
+                    .disabled(!isBundled)
+                    .onChange(of: launchAtLogin) { _, enabled in
+                        guard isBundled else { return }
+                        do {
+                            if enabled { try SMAppService.mainApp.register() }
+                            else { try SMAppService.mainApp.unregister() }
+                            launchError = nil
+                        } catch {
+                            launchError = error.localizedDescription
+                            launchAtLogin = SMAppService.mainApp.status == .enabled
                         }
-                        launchError = nil
-                    } catch {
-                        launchError = error.localizedDescription
-                        launchAtLogin = SMAppService.mainApp.status == .enabled
                     }
-                }
-            if !isBundled {
-                Text("Disponible cuando la app esté instalada como .app (fase de empaquetado).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if let launchError { Text(launchError).font(.caption).foregroundStyle(.red) }
             }
-            if let launchError {
-                Text(launchError)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-
-            Divider()
-
-            Toggle("Funciones de administrador (opcional)", isOn: $helperInstalled)
-                .disabled(!isBundled)
-                .onChange(of: helperInstalled) { _, enabled in
-                    do {
-                        if enabled { try HelperClient.shared.install() }
-                        else { try HelperClient.shared.uninstall() }
-                        helperError = nil
-                    } catch {
-                        helperError = error.localizedDescription
-                        helperInstalled = HelperClient.shared.isInstalled
-                    }
-                }
-            Text("Instala un ayudante privilegiado (pide tu contraseña una vez) para: cerrar procesos de otros usuarios/root (con doble confirmación) y vaciar caché de disco. Nota: macOS no permite medir GPU por proceso en Apple Silicon.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            if !isBundled {
-                Text("Disponible cuando la app esté instalada como .app.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            if let helperError {
-                Text(helperError).font(.caption).foregroundStyle(.red)
-            }
+            .padding(20)
         }
-        .padding(20)
-        .frame(width: 400)
+    }
+
+    // MARK: - Avanzadas (opt-in)
+
+    private var advancedTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Extras opcionales").font(.headline)
+                Text("Estas funciones vienen apagadas para mantener la app liviana. Actívalas si las quieres.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Toggle("Colores dinámicos en la barra", isOn: $dynamicColors)
+                    .onChange(of: dynamicColors) { _, v in
+                        AppConfig.shared.dynamicColorsEnabled = v; AppConfig.shared.notifyChanged()
+                    }
+                Text("El valor se pone amarillo al pasar el umbral de aviso y rojo al crítico.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Toggle("Alertas (notificación al cruzar el umbral crítico)", isOn: $alertsEnabled)
+                    .onChange(of: alertsEnabled) { _, v in
+                        AppConfig.shared.alertsEnabled = v; AppConfig.shared.notifyChanged()
+                    }
+
+                Divider()
+
+                Text("Umbrales").font(.headline)
+                thresholdRow("CPU aviso", value: $cpuWarn, range: 10...100, unit: "%") {
+                    AppConfig.shared.setThreshold(.cpu, .warning, cpuWarn / 100)
+                }
+                thresholdRow("CPU crítico", value: $cpuCrit, range: 10...100, unit: "%") {
+                    AppConfig.shared.setThreshold(.cpu, .critical, cpuCrit / 100)
+                }
+                thresholdRow("Temp aviso", value: $tempWarn, range: 40...110, unit: "°C") {
+                    AppConfig.shared.setThreshold(.temperature, .warning, tempWarn)
+                }
+                thresholdRow("Temp crítico", value: $tempCrit, range: 40...110, unit: "°C") {
+                    AppConfig.shared.setThreshold(.temperature, .critical, tempCrit)
+                }
+
+                Divider()
+
+                Toggle("Funciones de administrador (opcional)", isOn: $helperInstalled)
+                    .disabled(!isBundled)
+                    .onChange(of: helperInstalled) { _, enabled in
+                        do {
+                            if enabled { try HelperClient.shared.install() }
+                            else { try HelperClient.shared.uninstall() }
+                            helperError = nil
+                        } catch {
+                            helperError = error.localizedDescription
+                            helperInstalled = HelperClient.shared.isInstalled
+                        }
+                    }
+                Text("Ayudante privilegiado (pide tu contraseña una vez) para cerrar procesos de root (doble confirmación) y vaciar caché de disco.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if !isBundled {
+                    Text("Disponible cuando la app esté instalada como .app.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if let helperError { Text(helperError).font(.caption).foregroundStyle(.red) }
+            }
+            .padding(20)
+        }
+    }
+
+    private func thresholdRow(_ label: String, value: Binding<Double>,
+                              range: ClosedRange<Double>, unit: String,
+                              onCommit: @escaping () -> Void) -> some View {
+        HStack {
+            Text(label).frame(width: 90, alignment: .leading)
+            Slider(value: value, in: range) { editing in if !editing { onCommit() } }
+            Text("\(Int(value.wrappedValue)) \(unit)").monospacedDigit().frame(width: 54, alignment: .trailing)
+        }
     }
 
     private func move(_ metric: MetricID, by offset: Int) {

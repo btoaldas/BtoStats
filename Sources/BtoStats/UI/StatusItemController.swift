@@ -25,7 +25,7 @@ final class StatusItemController: NSObject {
         statusItem.button?.action = #selector(statusItemClicked)
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         applyGrid(Self.grid(columns: [
-            [("CPU", "--"), ("MEM", "--")],
+            [GridCell(label: "CPU", value: "--"), GridCell(label: "MEM", value: "--")],
         ], rows: 2))
         buildMenu()
     }
@@ -109,27 +109,46 @@ final class StatusItemController: NSObject {
         }
     }
 
+    /// Color de la celda según el umbral de la métrica (blanco si los colores
+    /// dinámicos están apagados o no hay dato).
+    private func cellColor(for metric: MetricID) -> NSColor {
+        guard AppConfig.shared.dynamicColorsEnabled else { return .labelColor }
+        let raw: Double?
+        switch metric {
+        case .cpu: raw = store.cpu?.totalUsage
+        case .memory: raw = store.memory?.fractionUsed
+        case .gpu: raw = store.gpu?.utilization
+        case .temperature: raw = store.sensors?.cpuTempAvg
+        case .diskFree: raw = store.disk.map { Double($0.availableBytes) }
+        case .network, .diskTotal: raw = nil
+        }
+        guard let value = raw else { return .labelColor }
+        return MetricThresholds.level(for: metric, value: value).color
+    }
+
     func render() {
         let config = AppConfig.shared
         let rows = config.gridRows
 
         // Cada métrica es un bloque de 1 celda, salvo la red: bloque indivisible
         // de 2 celdas contiguas en la misma columna (↑ arriba, ↓ abajo).
-        var blocks: [[(String, String)]] = []
+        var blocks: [[GridCell]] = []
         for metric in config.visibleMetrics {
             if metric == .network {
                 let up = store.network.map { Self.rate($0.uploadBps) } ?? "--"
                 let down = store.network.map { Self.rate($0.downloadBps) } ?? "--"
-                blocks.append([("↑", up), ("↓", down)])
+                blocks.append([GridCell(label: "↑", value: up), GridCell(label: "↓", value: down)])
             } else {
-                blocks.append([(metric.gridLabel, cellValue(for: metric))])
+                blocks.append([GridCell(label: metric.gridLabel,
+                                        value: cellValue(for: metric),
+                                        color: cellColor(for: metric))])
             }
         }
 
         // Empaquetado por columnas de `rows` celdas sin partir bloques:
         // si el bloque no cabe en lo que queda de columna, se rellena y se abre otra.
-        var columns: [[(String, String)?]] = []
-        var current: [(String, String)?] = []
+        var columns: [[GridCell?]] = []
+        var current: [GridCell?] = []
         for block in blocks {
             if current.count + block.count > rows {
                 while current.count < rows { current.append(nil) }
@@ -148,7 +167,7 @@ final class StatusItemController: NSObject {
         }
 
         applyGrid(columns.isEmpty
-            ? Self.grid(columns: [[("Bto", "Stats")]], rows: 1)
+            ? Self.grid(columns: [[GridCell(label: "Bto", value: "Stats")]], rows: 1)
             : Self.grid(columns: columns, rows: rows))
 
         if let cpu = store.cpu {
@@ -230,7 +249,7 @@ final class StatusItemController: NSObject {
     /// Alineación por relleno monoespaciado exacto por columna (los tab stops
     /// se desfasaban cuando un valor rozaba su posición): label a la izquierda,
     /// valor a la derecha, 1 espacio entre ambos, 2 entre columnas.
-    static func grid(columns: [[(String, String)?]], rows: Int) -> (title: NSAttributedString, width: CGFloat) {
+    static func grid(columns: [[GridCell?]], rows: Int) -> (title: NSAttributedString, width: CGFloat) {
         let lineHeight: CGFloat = rows >= 4 ? 5.2 : (rows == 3 ? 6.6 : 9)
         let labelSize: CGFloat = rows >= 4 ? 4.5 : (rows == 3 ? 5 : 6.5)
         let valueSize: CGFloat = rows >= 4 ? 5.5 : (rows == 3 ? 6.5 : 8.5)
@@ -243,10 +262,10 @@ final class StatusItemController: NSObject {
         paragraph.maximumLineHeight = lineHeight
         paragraph.lineBreakMode = .byClipping
 
-        func attributed(_ text: String, _ font: NSFont, kern: CGFloat = 0) -> NSAttributedString {
+        func attributed(_ text: String, _ font: NSFont, color: NSColor = .labelColor, kern: CGFloat = 0) -> NSAttributedString {
             NSAttributedString(string: text, attributes: [
                 .font: font,
-                .foregroundColor: NSColor.labelColor,
+                .foregroundColor: color,
                 .paragraphStyle: paragraph,
                 .baselineOffset: baseline,
                 .kern: kern,
@@ -263,8 +282,8 @@ final class StatusItemController: NSObject {
         let metrics: [(label: Int, value: Int)] = columns.map { column in
             var label = 0, value = 0
             for cell in column.compactMap({ $0 }) {
-                label = max(label, cell.0.count)
-                value = max(value, cell.1.count)
+                label = max(label, cell.label.count)
+                value = max(value, cell.value.count)
             }
             return (label, value)
         }
@@ -283,9 +302,10 @@ final class StatusItemController: NSObject {
                 if index > 0 {
                     line.append(columnSpace)
                 }
-                line.append(attributed(pad(cell?.0 ?? "", to: metrics[index].label, alignRight: false), labelFont))
+                line.append(attributed(pad(cell?.label ?? "", to: metrics[index].label, alignRight: false), labelFont))
                 line.append(halfSpace)
-                line.append(attributed(pad(cell?.1 ?? "", to: metrics[index].value, alignRight: true), valueFont))
+                line.append(attributed(pad(cell?.value ?? "", to: metrics[index].value, alignRight: true),
+                                       valueFont, color: cell?.color ?? .labelColor))
             }
             maxWidth = max(maxWidth, line.size().width)
             if row < rows - 1 {
@@ -295,4 +315,12 @@ final class StatusItemController: NSObject {
         }
         return (result, ceil(maxWidth))
     }
+}
+
+/// Celda de la cuadrícula: etiqueta, valor y color del valor (para colores
+/// dinámicos por umbral — v1.1).
+struct GridCell {
+    let label: String
+    let value: String
+    var color: NSColor = .labelColor
 }
