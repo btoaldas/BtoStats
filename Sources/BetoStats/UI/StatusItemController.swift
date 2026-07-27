@@ -8,6 +8,8 @@ final class StatusItemController {
 
     private let cpuMenuItem = NSMenuItem(title: "CPU: midiendo…", action: nil, keyEquivalent: "")
     private let memoryMenuItem = NSMenuItem(title: "RAM: midiendo…", action: nil, keyEquivalent: "")
+    private let gpuMenuItem = NSMenuItem(title: "GPU: midiendo…", action: nil, keyEquivalent: "")
+    private let sensorsMenuItem = NSMenuItem(title: "Sensores: midiendo…", action: nil, keyEquivalent: "")
     private let networkMenuItem = NSMenuItem(title: "Red: midiendo…", action: nil, keyEquivalent: "")
     private let diskMenuItem = NSMenuItem(title: "Disco: midiendo…", action: nil, keyEquivalent: "")
 
@@ -24,7 +26,7 @@ final class StatusItemController {
     private func buildMenu() {
         let menu = NSMenu()
         menu.autoenablesItems = false
-        for item in [cpuMenuItem, memoryMenuItem, networkMenuItem, diskMenuItem] {
+        for item in [cpuMenuItem, gpuMenuItem, memoryMenuItem, sensorsMenuItem, networkMenuItem, diskMenuItem] {
             item.isEnabled = true
             menu.addItem(item)
         }
@@ -65,8 +67,13 @@ final class StatusItemController {
 
         var columns: [[(String, String)]] = [
             [("CPU", cpuText), ("MEM", memText)],
-            [("↑", upText), ("↓", downText)],
         ]
+        if store.gpu != nil || store.sensors?.cpuTempAvg != nil {
+            let gpuText = store.gpu.map { String(format: "%3.0f%%", $0.utilization) } ?? " --%"
+            let tempText = store.sensors?.cpuTempAvg.map { String(format: "%3.0f°", $0) } ?? " --°"
+            columns.append([("GPU", gpuText), ("TMP", tempText)])
+        }
+        columns.append([("↑", upText), ("↓", downText)])
         if let disk = store.disk {
             columns.append([("D", Self.bytes(disk.availableBytes)),
                             (" ", Self.bytes(disk.totalBytes))])
@@ -82,6 +89,29 @@ final class StatusItemController {
                                                                      memory.usedBytes / 1_073_741_824,
                                                                      memory.totalBytes / 1_073_741_824,
                                                                      memory.fractionUsed * 100))
+        }
+        if let gpu = store.gpu {
+            var text = String(format: "GPU: %.1f%%", gpu.utilization)
+            if let memory = gpu.usedMemoryBytes {
+                text += String(format: " (memoria en uso: %.1f GB)", Double(memory) / 1e9)
+            }
+            gpuMenuItem.attributedTitle = Self.detailTitle(text)
+        }
+        if let sensors = store.sensors {
+            var parts: [String] = []
+            if let avg = sensors.cpuTempAvg, let peak = sensors.cpuTempMax {
+                parts.append(String(format: "CPU %.0f° (máx %.0f°)", avg, peak))
+            }
+            if let gpuTemp = sensors.gpuTempAvg {
+                parts.append(String(format: "GPU %.0f°", gpuTemp))
+            }
+            if !sensors.fanRPM.isEmpty {
+                let fans = sensors.fanRPM.map { String(format: "%.0f", $0) }.joined(separator: " / ")
+                parts.append("Ventiladores \(fans) RPM")
+            }
+            if !parts.isEmpty {
+                sensorsMenuItem.attributedTitle = Self.detailTitle("Sensores: " + parts.joined(separator: "  ·  "))
+            }
         }
         if let network = store.network {
             networkMenuItem.attributedTitle = Self.detailTitle(

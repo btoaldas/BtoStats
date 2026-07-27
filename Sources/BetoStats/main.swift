@@ -8,6 +8,8 @@ if CommandLine.arguments.contains("--sample") {
     let memory = MemoryReader()
     let network = NetworkReader()
     let disk = DiskReader()
+    let gpu = GPUReader()
+    let sensors = SensorsReader()
 
     for tick in 0...max(seconds, 1) {
         let c = cpu.read()
@@ -21,7 +23,16 @@ if CommandLine.arguments.contains("--sample") {
             let netText = n.map { String(format: "↑ %.0f B/s  ↓ %.0f B/s  (totales: out %llu, in %llu)",
                                          $0.uploadBps, $0.downloadBps,
                                          $0.totalUploadBytes, $0.totalDownloadBytes) } ?? "--"
+            let gpuText = gpu.read().map { String(format: "%.1f%%", $0.utilization) } ?? "--"
+            var sensorText = "--"
+            if let sn = sensors.read() {
+                let cpuT = sn.cpuTempAvg.map { String(format: "cpu %.1f°C (max %.1f°C)", $0, sn.cpuTempMax ?? $0) } ?? "cpu --"
+                let gpuT = sn.gpuTempAvg.map { String(format: "gpu %.1f°C", $0) } ?? "gpu --"
+                let fans = sn.fanRPM.map { String(format: "%.0f", $0) }.joined(separator: "/")
+                sensorText = "\(cpuT)  \(gpuT)  fans \(fans) rpm"
+            }
             print("t\(tick)  CPU \(cpuText)  |  RAM \(memText)  |  NET \(netText)")
+            print("      GPU \(gpuText)  |  SENS \(sensorText)")
         }
         if tick < max(seconds, 1) { Thread.sleep(forTimeInterval: 1.0) }
     }

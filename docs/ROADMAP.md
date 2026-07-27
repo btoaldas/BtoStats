@@ -18,10 +18,13 @@ reproducible antes de darse por cerrada.
 - [x] Refactor a Sampler (2 relojes) / MetricStore / StatusItemController.
 - [x] Modo `--sample` para verificación numérica por terminal.
 
-## Fase 2 — Sensores y GPU
+## Fase 2 — Sensores y GPU ✅
 
-- [ ] GPU % (IOKit PerformanceStatistics — según VIABILIDAD.md).
-- [ ] Temperatura CPU/GPU y ventiladores RPM (SMC lectura — según VIABILIDAD.md).
+- [x] GPU % (IOKit IOAccelerator PerformanceStatistics, EMA + clamp; verificado
+      contra ioreg) y memoria GPU en uso (menú).
+- [x] Cliente SMC read-only propio (enumeración dinámica de claves, filtro por
+      rango físico). Temperatura CPU/GPU en cuadrícula y menú; ventiladores RPM
+      en menú. Verificado con prueba térmica (carga → +10 °C → enfriamiento).
 
 ## Fase 3 — Configuración (todo parametrizable)
 

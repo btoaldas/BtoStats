@@ -9,6 +9,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let memoryReader = MemoryReader()
     private let networkReader = NetworkReader()
     private let diskReader = DiskReader()
+    private let gpuReader = GPUReader()
+    private let sensorsReader = SensorsReader()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusController = StatusItemController(store: store)
@@ -21,8 +23,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let cpu = self.cpuReader.read()
                 let memory = self.memoryReader.read()
                 let network = self.networkReader.read()
+                let gpu = self.gpuReader.read()
+                let sensors = self.sensorsReader.read()
                 DispatchQueue.main.async {
-                    self.store.updateFast(cpu: cpu, memory: memory, network: network)
+                    self.store.updateFast(cpu: cpu, memory: memory, network: network,
+                                          gpu: gpu, sensors: sensors)
                     self.statusController?.render()
                 }
             },
