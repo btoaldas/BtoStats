@@ -70,7 +70,8 @@ Sin dependencias externas (SPM puro). No usar App Sandbox (bloquea el SMC).
 ## Agradecimientos
 
 El enfoque de lectura del SMC y varios patrones de widgets se estudiaron de
-[exelban/stats](https://github.com/exelban/stats) (© Serhiy Mytrovtsiy).
+[exelban/stats](https://github.com/exelban/stats) (licencia licencia permisiva de ese proyecto,
+© Serhiy Mytrovtsiy). La licencia de BtoStats es PolyForm Strict (ver abajo).
 
 ## Licencia
 

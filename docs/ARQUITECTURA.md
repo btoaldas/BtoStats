@@ -1,6 +1,7 @@
 # BtoStats — Arquitectura
 
-Patrón inspirado en exelban/stats (licencia permisiva): cada métrica es un módulo con
+Patrón inspirado en exelban/stats (proyecto de terceros bajo licencia licencia permisiva — la
+licencia de BtoStats es PolyForm Strict, ver LICENSE): cada métrica es un módulo con
 **Reader** (datos) desacoplado de **Widget** (celda en el status item) y **Popup**
 (sección del panel grande). Basado en docs/VIABILIDAD.md.
 

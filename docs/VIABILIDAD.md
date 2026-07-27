@@ -1,7 +1,7 @@
 # BtoStats — Viabilidad técnica
 
 Investigación técnica (julio 2026) contrastada con implementaciones open source
-(exelban/stats master, licencia permisiva) y documentación de Apple. Todo lo marcado **[V]** fue
+(exelban/stats master — proyecto de terceros bajo licencia licencia permisiva) y documentación de Apple. Todo lo marcado **[V]** fue
 verificado empíricamente en el hardware de referencia (MacBook Pro M5 Pro / Mac17,9,
 macOS 26.5.2, usuario normal, **sin sudo**) con binarios de prueba compilados.
 
@@ -140,4 +140,4 @@ redibujado del status item — ahí hay que optimizar, no en los readers.
   `settings`. Su único componente root es el helper de control de ventiladores — no se
   necesita aquí.
 - **iGlance: GPL-3.0 y abandonado — no copiar código** (contaminaría la licencia).
-  eul: licencia permisiva pero inactivo desde 2024 (pre-M5) — solo inspiración de UI.
+  eul: licencia licencia permisiva (de ese proyecto) pero inactivo desde 2024 (pre-M5) — solo inspiración de UI.
