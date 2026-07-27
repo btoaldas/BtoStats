@@ -24,7 +24,16 @@ struct SettingsView: View {
 
             List {
                 ForEach(order) { metric in
-                    Toggle(metric.displayName, isOn: binding(for: metric))
+                    HStack {
+                        Toggle(metric.displayName, isOn: binding(for: metric))
+                        Spacer()
+                        Button { move(metric, by: -1) } label: { Image(systemName: "chevron.up") }
+                            .buttonStyle(.borderless)
+                            .disabled(order.first == metric)
+                        Button { move(metric, by: 1) } label: { Image(systemName: "chevron.down") }
+                            .buttonStyle(.borderless)
+                            .disabled(order.last == metric)
+                    }
                 }
                 .onMove { source, destination in
                     order.move(fromOffsets: source, toOffset: destination)
@@ -32,7 +41,7 @@ struct SettingsView: View {
                     AppConfig.shared.notifyChanged()
                 }
             }
-            .frame(height: 210)
+            .frame(height: 230)
 
             Divider()
 
@@ -88,6 +97,15 @@ struct SettingsView: View {
         }
         .padding(20)
         .frame(width: 400)
+    }
+
+    private func move(_ metric: MetricID, by offset: Int) {
+        guard let index = order.firstIndex(of: metric) else { return }
+        let target = index + offset
+        guard order.indices.contains(target) else { return }
+        order.swapAt(index, target)
+        AppConfig.shared.metricOrder = order
+        AppConfig.shared.notifyChanged()
     }
 
     private func binding(for metric: MetricID) -> Binding<Bool> {

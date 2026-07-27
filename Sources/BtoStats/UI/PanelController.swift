@@ -94,6 +94,7 @@ final class PanelController: NSObject, NSWindowDelegate {
             let snapshot = self.processReader.read()
             DispatchQueue.main.async {
                 self.model.topCPU = snapshot.topCPU
+                self.model.totalCPUPercent = snapshot.totalCPUPercent
                 self.model.topRAM = snapshot.topRAM
                 if !snapshot.topNetwork.isEmpty {
                     self.model.topNetwork = snapshot.topNetwork

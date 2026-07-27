@@ -23,9 +23,9 @@ final class StatusItemController: NSObject {
         statusItem.button?.target = self
         statusItem.button?.action = #selector(statusItemClicked)
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        statusItem.button?.attributedTitle = Self.grid(columns: [
+        applyGrid(Self.grid(columns: [
             [("CPU", " --%"), ("MEM", " --%")],
-        ], rows: 2)
+        ], rows: 2))
         buildMenu()
     }
 
@@ -61,6 +61,15 @@ final class StatusItemController: NSObject {
         quit.attributedTitle = quitTitle
         menu.addItem(quit)
         contextMenu = menu
+    }
+
+    /// El botón no computa el ancho de los right-tabs: fijar length explícito
+    /// (de paso elimina cualquier baile de ancho al refrescar).
+    private func applyGrid(_ grid: (title: NSAttributedString, width: CGFloat)) {
+        statusItem.button?.attributedTitle = grid.title
+        // el botón centra el título y aplica ~8 pt de inset por lado: sin margen
+        // suficiente el contenido se recorta por los bordes
+        statusItem.length = grid.width + 16
     }
 
     /// Clic izquierdo: panel grande. Clic derecho: menú de detalle.
@@ -138,11 +147,9 @@ final class StatusItemController: NSObject {
             columns.append(current)
         }
 
-        if columns.isEmpty {
-            statusItem.button?.attributedTitle = Self.grid(columns: [[("Bto", "Stats")]], rows: 1)
-        } else {
-            statusItem.button?.attributedTitle = Self.grid(columns: columns, rows: rows)
-        }
+        applyGrid(columns.isEmpty
+            ? Self.grid(columns: [[("Bto", "Stats")]], rows: 1)
+            : Self.grid(columns: columns, rows: rows))
 
         if let cpu = store.cpu {
             cpuMenuItem.attributedTitle = Self.detailTitle(String(format: "CPU: %.1f%% (%d núcleos)",
@@ -209,41 +216,58 @@ final class StatusItemController: NSObject {
     }
 
     /// Cuadrícula de N columnas × `rows` filas para el status item.
-    /// Celda nil = hueco de empaquetado: se rellena con espacios del ancho de la
-    /// celda de referencia de su columna para no desalinear las siguientes.
-    static func grid(columns: [[(String, String)?]], rows: Int) -> NSAttributedString {
+    /// Alineación real por tab stops: label pegado al borde izquierdo de su
+    /// columna, valor pegado al derecho — columnas cuadradas a ambas esquinas.
+    static func grid(columns: [[(String, String)?]], rows: Int) -> (title: NSAttributedString, width: CGFloat) {
         let compact = rows >= 3
         let lineHeight: CGFloat = compact ? 6.6 : 9
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.minimumLineHeight = lineHeight
-        paragraph.maximumLineHeight = lineHeight
-        paragraph.alignment = .left
-
         let labelFont = NSFont.monospacedSystemFont(ofSize: compact ? 5 : 6.5, weight: .semibold)
         let valueFont = NSFont.monospacedSystemFont(ofSize: compact ? 6.5 : 8.5, weight: .medium)
         let baseline: CGFloat = compact ? -2 : -3
 
+        let labelAttributes: [NSAttributedString.Key: Any] = [.font: labelFont]
+        let valueAttributes: [NSAttributedString.Key: Any] = [.font: valueFont]
+
+        // Ancho real de cada columna: label más ancho + valor más ancho.
+        let widths: [(label: CGFloat, value: CGFloat)] = columns.map { column in
+            var label: CGFloat = 0, value: CGFloat = 0
+            for cell in column.compactMap({ $0 }) {
+                label = max(label, (cell.0 as NSString).size(withAttributes: labelAttributes).width)
+                value = max(value, (cell.1 as NSString).size(withAttributes: valueAttributes).width)
+            }
+            return (label, value)
+        }
+
+        let columnGap: CGFloat = compact ? 5 : 6
+        let innerGap: CGFloat = compact ? 2.5 : 3
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.minimumLineHeight = lineHeight
+        paragraph.maximumLineHeight = lineHeight
+        paragraph.defaultTabInterval = 0
+        var tabStops: [NSTextTab] = []
+        var cursor: CGFloat = 0
+        for width in widths {
+            tabStops.append(NSTextTab(textAlignment: .left, location: cursor))
+            cursor += width.label + innerGap + width.value
+            tabStops.append(NSTextTab(textAlignment: .right, location: cursor))
+            cursor += columnGap
+        }
+        paragraph.tabStops = tabStops
+        paragraph.lineBreakMode = .byClipping
+        let totalWidth = max(cursor - columnGap, 0)
+
         let result = NSMutableAttributedString()
         for row in 0..<rows {
             let line = NSMutableAttributedString()
-            for (columnIndex, column) in columns.enumerated() {
-                let reference = column.compactMap { $0 }.first ?? ("", "")
+            for column in columns {
                 let cell = row < column.count ? column[row] : nil
-                let (label, value) = cell
-                    ?? (String(repeating: " ", count: reference.0.count),
-                        String(repeating: " ", count: reference.1.count))
-                if columnIndex > 0 {
-                    line.append(NSAttributedString(string: " ", attributes: [
-                        .font: valueFont, .paragraphStyle: paragraph, .baselineOffset: baseline,
-                    ]))
-                }
-                line.append(NSAttributedString(string: label + " ", attributes: [
+                line.append(NSAttributedString(string: "\t" + (cell?.0 ?? ""), attributes: [
                     .font: labelFont,
                     .foregroundColor: NSColor.labelColor,
                     .paragraphStyle: paragraph,
                     .baselineOffset: baseline,
                 ]))
-                line.append(NSAttributedString(string: value, attributes: [
+                line.append(NSAttributedString(string: "\t" + (cell?.1 ?? ""), attributes: [
                     .font: valueFont,
                     .foregroundColor: NSColor.labelColor,
                     .paragraphStyle: paragraph,
@@ -255,6 +279,6 @@ final class StatusItemController: NSObject {
             }
             result.append(line)
         }
-        return result
+        return (result, totalWidth)
     }
 }

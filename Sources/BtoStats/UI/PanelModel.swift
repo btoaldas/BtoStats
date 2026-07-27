@@ -24,6 +24,8 @@ final class PanelModel: ObservableObject {
     @Published var uploadHistory: [Double] = []    // B/s
     @Published var downloadHistory: [Double] = []  // B/s
 
+    @Published var lastGPUProcess: String?
+    @Published var totalCPUPercent: Double = 0   // suma pcpu (100 = 1 core)
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
     @Published var topNetwork: [ProcessReader.ProcessSample] = []
@@ -38,7 +40,10 @@ final class PanelModel: ObservableObject {
             memoryTotalGB = memory.totalBytes / 1e9
             memoryFraction = memory.fractionUsed
         }
-        if let gpu = store.gpu { gpuUsage = gpu.utilization }
+        if let gpu = store.gpu {
+            gpuUsage = gpu.utilization
+            lastGPUProcess = gpu.lastSubmitterName
+        }
         if let sensors = store.sensors {
             cpuTemp = sensors.cpuTempAvg
             gpuTemp = sensors.gpuTempAvg

@@ -53,8 +53,15 @@ reproducible antes de darse por cerrada.
 - [ ] "Salud de RAM" honesta: presión real + top consumidores (purge es teatro — ver
       VIABILIDAD §4); botón experimental OFF por defecto.
 
-## Fase 6 — Pulido
+## Fase 6 — Pulido / empaquetado
 
 - [ ] Icono, empaquetado .app, instalación en /Applications.
 - [ ] Mini-gráficos (sparklines) opcionales en el status item.
 - [ ] Manual con capturas.
+
+## Fase 7 — Widget de escritorio (adicional final — ver REQUERIMIENTOS R7)
+
+- [ ] Widget estilo anillos (CPU/GPU/RAM/Disco) en el escritorio, tiempo real.
+- [ ] Tamaños S/M/L/XL con más métricas según tamaño; métricas configurables.
+- [ ] Decisión técnica: ventana desktop-level propia vs WidgetKit (timeline
+      no da 1 Hz — ver VIABILIDAD).

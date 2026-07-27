@@ -17,33 +17,42 @@ final class ProcessReader {
         let topCPU: [ProcessSample]
         let topRAM: [ProcessSample]
         let topNetwork: [ProcessSample]
+        let totalCPUPercent: Double // suma de pcpu de TODOS los procesos (100 = 1 core)
     }
 
     private var previousNet: [Int32: (inBytes: UInt64, outBytes: UInt64, name: String)] = [:]
     private var previousNetUptime: TimeInterval?
 
     func read(limit: Int = 8) -> Snapshot {
-        Snapshot(topCPU: topCPU(limit: limit),
-                 topRAM: topRAM(limit: limit),
-                 topNetwork: topNetwork(limit: limit))
+        let cpu = topCPU(limit: limit)
+        return Snapshot(topCPU: cpu.samples,
+                        topRAM: topRAM(limit: limit),
+                        topNetwork: topNetwork(limit: limit),
+                        totalCPUPercent: cpu.total)
     }
 
     // MARK: - CPU (ps, ~30 ms)
 
-    private func topCPU(limit: Int) -> [ProcessSample] {
-        guard let output = Self.run("/bin/ps", ["-Aceo", "pid,ppid,pcpu,comm", "-r"]) else { return [] }
+    private func topCPU(limit: Int) -> (samples: [ProcessSample], total: Double) {
+        guard let output = Self.run("/bin/ps", ["-Aceo", "pid,ppid,pcpu,comm", "-r"]) else { return ([], 0) }
         let ownPid = ProcessInfo.processInfo.processIdentifier
-        return Array(output.split(separator: "\n").dropFirst().compactMap { line -> ProcessSample? in
+        var total = 0.0
+        var samples: [ProcessSample] = []
+        for line in output.split(separator: "\n").dropFirst() {
             let parts = line.split(separator: " ", maxSplits: 3, omittingEmptySubsequences: true)
             guard parts.count == 4,
                   let pid = Int32(parts[0]),
                   let ppid = Int32(parts[1]),
-                  let cpu = Double(parts[2]) else { return nil }
+                  let cpu = Double(parts[2]) else { continue }
             // bajo carga nuestro top/nettop del ciclo anterior puede seguir vivo
             // durante este ps: los hijos propios no son "top procesos" del usuario
-            guard ppid != ownPid else { return nil }
-            return ProcessSample(pid: pid, name: String(parts[3]), value: cpu)
-        }.prefix(limit))
+            guard ppid != ownPid else { continue }
+            total += cpu
+            if samples.count < limit {
+                samples.append(ProcessSample(pid: pid, name: String(parts[3]), value: cpu))
+            }
+        }
+        return (samples, total)
     }
 
     // MARK: - RAM (top, ~750 ms — solo panel abierto)

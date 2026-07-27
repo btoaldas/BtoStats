@@ -62,46 +62,48 @@ struct PanelView: View {
     // MARK: - Gráficos
 
     private var usageChart: some View {
-        chartCard("CPU · GPU · RAM (5 min)") {
+        chartCard("Uso % (5 min)") {
             Chart {
                 ForEach(Array(model.cpuHistory.enumerated()), id: \.offset) { index, value in
                     LineMark(x: .value("t", index), y: .value("%", value * 100),
-                             series: .value("serie", "CPU"))
-                        .foregroundStyle(.blue)
+                             series: .value("Serie", "CPU"))
+                        .foregroundStyle(by: .value("Serie", "CPU"))
                 }
                 ForEach(Array(model.gpuHistory.enumerated()), id: \.offset) { index, value in
                     LineMark(x: .value("t", index), y: .value("%", value),
-                             series: .value("serie", "GPU"))
-                        .foregroundStyle(.green)
+                             series: .value("Serie", "GPU"))
+                        .foregroundStyle(by: .value("Serie", "GPU"))
                 }
                 ForEach(Array(model.memoryHistory.enumerated()), id: \.offset) { index, value in
                     LineMark(x: .value("t", index), y: .value("%", value * 100),
-                             series: .value("serie", "RAM"))
-                        .foregroundStyle(.orange)
+                             series: .value("Serie", "RAM"))
+                        .foregroundStyle(by: .value("Serie", "RAM"))
                 }
             }
+            .chartForegroundStyleScale(["CPU": Color.blue, "GPU": Color.green, "RAM": Color.orange])
             .chartYScale(domain: 0...100)
             .chartXAxis(.hidden)
-            .chartLegend(.hidden)
+            .chartLegend(position: .top, alignment: .leading)
         }
     }
 
     private var networkChart: some View {
-        chartCard("Red B/s (5 min) — azul ↓, rojo ↑") {
+        chartCard("Red B/s (5 min)") {
             Chart {
                 ForEach(Array(model.downloadHistory.enumerated()), id: \.offset) { index, value in
                     LineMark(x: .value("t", index), y: .value("B/s", value),
-                             series: .value("serie", "↓"))
-                        .foregroundStyle(.blue)
+                             series: .value("Serie", "↓ Bajada"))
+                        .foregroundStyle(by: .value("Serie", "↓ Bajada"))
                 }
                 ForEach(Array(model.uploadHistory.enumerated()), id: \.offset) { index, value in
                     LineMark(x: .value("t", index), y: .value("B/s", value),
-                             series: .value("serie", "↑"))
-                        .foregroundStyle(.red)
+                             series: .value("Serie", "↑ Subida"))
+                        .foregroundStyle(by: .value("Serie", "↑ Subida"))
                 }
             }
+            .chartForegroundStyleScale(["↓ Bajada": Color.blue, "↑ Subida": Color.red])
             .chartXAxis(.hidden)
-            .chartLegend(.hidden)
+            .chartLegend(position: .top, alignment: .leading)
         }
     }
 
@@ -118,10 +120,29 @@ struct PanelView: View {
     // MARK: - Top procesos
 
     private var topsRow: some View {
-        HStack(alignment: .top, spacing: 14) {
-            topList("Top CPU", model.topCPU) { String(format: "%.1f%%", $0.value) }
-            topList("Top RAM", model.topRAM) { StatusItemController.bytes(UInt64($0.value)) }
-            topList("Top Red", model.topNetwork) { StatusItemController.rate($0.value) + "/s" }
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 14) {
+                // pcpu de ps: 100 % = 1 core. Se muestran las dos lecturas que
+                // pidió el requerimiento: % de TODO el equipo y % del uso actual.
+                topList("Top CPU — equipo · del uso", model.topCPU) { sample in
+                    let ofMachine = sample.value / Double(max(model.coreCount, 1))
+                    let ofUse = model.totalCPUPercent > 0
+                        ? sample.value / model.totalCPUPercent * 100 : 0
+                    return String(format: "%.1f%% · %.0f%%", ofMachine, ofUse)
+                }
+                topList("Top RAM — uso · del total", model.topRAM) { sample in
+                    let fraction = model.memoryTotalGB > 0
+                        ? sample.value / 1e9 / model.memoryTotalGB * 100 : 0
+                    return StatusItemController.bytes(UInt64(sample.value))
+                        + String(format: " · %.0f%%", fraction)
+                }
+                topList("Top Red", model.topNetwork) { StatusItemController.rate($0.value) + "/s" }
+            }
+            if let gpuProcess = model.lastGPUProcess {
+                Text("GPU en uso por: \(gpuProcess) — macOS no expone %GPU por proceso sin permisos de administrador; este es el último proceso que envió trabajo a la GPU.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 

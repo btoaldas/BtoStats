@@ -57,6 +57,17 @@ nativa, sencilla y visualmente cuidada, con estadísticas del sistema en tiempo 
 - Preferencias con checks por métrica, orden de celdas, cadencia de refresh,
   unidades, y arranque al iniciar sesión (launch at login).
 
+## R7 — Widget de escritorio (fase final, tras completar R1-R6)
+
+- Widget para el escritorio de macOS estilo "anillos" (CPU, GPU, RAM, Disco),
+  siempre visible, en tiempo real (a diferencia de los widgets nativos de
+  WidgetKit, que refrescan por timeline y se quedan viejos).
+- **Tamaños**: pequeño (una métrica), mediano (4 anillos), grande y extra
+  grande (más métricas y detalle). Configurable cuáles métricas muestra.
+- Nota técnica: WidgetKit no soporta refresh de ~1 s (modelo timeline + bug de
+  chronod en macOS 26) → evaluar ventana propia a nivel escritorio
+  (comportamiento tipo Übersicht) para tiempo real de verdad.
+
 ## Fuera de alcance v1
 
 - Notificaciones remotas, histórico persistente largo, soporte Intel.
