@@ -13,7 +13,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     private let processQueue = DispatchQueue(label: "btostats.processes", qos: .utility)
 
     var isVisible: Bool { panel?.isVisible ?? false }
-    private var lastAutoClose = Date.distantPast
+    private var clickOutsideMonitor: Any?
 
     /// Con pin activo el panel no se cierra al perder el foco (usado por el
     /// modo de prueba BTOSTATS_TEST_PANEL; luego será el botón de anclar).
@@ -22,9 +22,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     func toggle(relativeTo button: NSStatusBarButton?, store: MetricStore) {
         if isVisible {
             close()
-        } else if Date().timeIntervalSince(lastAutoClose) > 0.4 {
-            // si el clic en el status item acaba de cerrar el panel por pérdida
-            // de foco, no reabrirlo en el mismo clic (parecía errático)
+        } else {
             show(relativeTo: button, store: store)
         }
     }
@@ -45,19 +43,51 @@ final class PanelController: NSObject, NSWindowDelegate {
             newPanel.level = .floating
             newPanel.becomesKeyOnlyIfNeeded = true
             newPanel.isReleasedWhenClosed = false
-            newPanel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+            // canJoinAllSpaces (no moveToActiveSpace): tras un orderOut,
+            // moveToActiveSpace deja la ventana asignada a un Space viejo y el
+            // WindowServer no la re-muestra (AppKit cree que está visible) —
+            // el bug de "el clic no hace nada hasta abrir Preferencias".
+            newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             newPanel.delegate = self
             panel = newPanel
         }
         model.refresh(from: store)
         position(relativeTo: button)
-        panel?.makeKeyAndOrderFront(nil)
+        // Sin activar la app ni pedir key: orderFrontRegardless muestra el
+        // panel SIEMPRE (con la app inactiva makeKeyAndOrderFront podía no
+        // mostrarlo — el bug de "hay que abrir Preferencias primero"). El
+        // cierre por clic-fuera lo hace el monitor global, no el foco.
+        panel?.orderFrontRegardless()
+        startClickOutsideMonitor()
         startProcessSampling()
     }
 
     func close() {
         stopProcessSampling()
+        stopClickOutsideMonitor()
         panel?.orderOut(nil)
+    }
+
+    /// Clic en cualquier OTRA app (fuera del panel) → cerrar. Los clics dentro
+    /// del panel o en nuestro status item son de nuestra app y no pasan por
+    /// este monitor, así que no hay carreras.
+    private func startClickOutsideMonitor() {
+        stopClickOutsideMonitor()
+        clickOutsideMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] _ in
+            guard let self, !self.pinned, let frame = self.panel?.frame else { return }
+            if !frame.contains(NSEvent.mouseLocation) {
+                DispatchQueue.main.async { self.close() }
+            }
+        }
+    }
+
+    private func stopClickOutsideMonitor() {
+        if let monitor = clickOutsideMonitor {
+            NSEvent.removeMonitor(monitor)
+            clickOutsideMonitor = nil
+        }
     }
 
     private func position(relativeTo button: NSStatusBarButton?) {
@@ -107,12 +137,4 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
     }
 
-    // MARK: - NSWindowDelegate
-
-    func windowDidResignKey(_ notification: Notification) {
-        if !pinned {
-            lastAutoClose = Date()
-            close()
-        }
-    }
 }
