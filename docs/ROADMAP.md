@@ -65,3 +65,13 @@ reproducible antes de darse por cerrada.
 - [ ] Tamaños S/M/L/XL con más métricas según tamaño; métricas configurables.
 - [ ] Decisión técnica: ventana desktop-level propia vs WidgetKit (timeline
       no da 1 Hz — ver VIABILIDAD).
+
+## Fase 8 — Helper de administrador (opcional, OFF por defecto)
+
+Instalable desde Preferencias con aprobación única del usuario
+(SMAppService.daemon + XPC con validación de firma; solo operaciones
+concretas, jamás un shell privilegiado — ver VIABILIDAD §4).
+
+- [ ] Top GPU exacto por proceso (powermetrics vía helper).
+- [ ] Matar procesos de otros usuarios/root (con doble confirmación).
+- [ ] purge / presión de memoria simulada (etiquetados como experimentales).

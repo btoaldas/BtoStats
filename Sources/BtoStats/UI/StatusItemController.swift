@@ -24,7 +24,7 @@ final class StatusItemController: NSObject {
         statusItem.button?.action = #selector(statusItemClicked)
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         applyGrid(Self.grid(columns: [
-            [("CPU", " --%"), ("MEM", " --%")],
+            [("CPU", "--"), ("MEM", "--")],
         ], rows: 2))
         buildMenu()
     }
@@ -99,13 +99,13 @@ final class StatusItemController: NSObject {
     /// Valor de una métrica para su celda, o nil si el reader aún no entrega dato.
     private func cellValue(for metric: MetricID) -> String {
         switch metric {
-        case .cpu: return store.cpu.map { String(format: "%3.0f%%", $0.totalUsage * 100) } ?? " --%"
-        case .memory: return store.memory.map { String(format: "%3.0f%%", $0.fractionUsed * 100) } ?? " --%"
-        case .gpu: return store.gpu.map { String(format: "%3.0f%%", $0.utilization) } ?? " --%"
-        case .temperature: return store.sensors?.cpuTempAvg.map { String(format: "%3.0f°", $0) } ?? " --°"
+        case .cpu: return store.cpu.map { String(format: "%.0f%%", $0.totalUsage * 100) } ?? "--"
+        case .memory: return store.memory.map { String(format: "%.0f%%", $0.fractionUsed * 100) } ?? "--"
+        case .gpu: return store.gpu.map { String(format: "%.0f%%", $0.utilization) } ?? "--"
+        case .temperature: return store.sensors?.cpuTempAvg.map { String(format: "%.0f°", $0) } ?? "--"
         case .network: return "" // el bloque de red se expande en render()
-        case .diskFree: return store.disk.map { Self.bytes($0.availableBytes) } ?? "   --"
-        case .diskTotal: return store.disk.map { Self.bytes($0.totalBytes) } ?? "   --"
+        case .diskFree: return store.disk.map { Self.bytes($0.availableBytes) } ?? "--"
+        case .diskTotal: return store.disk.map { Self.bytes($0.totalBytes) } ?? "--"
         }
     }
 
@@ -118,8 +118,8 @@ final class StatusItemController: NSObject {
         var blocks: [[(String, String)]] = []
         for metric in config.visibleMetrics {
             if metric == .network {
-                let up = store.network.map { Self.rate($0.uploadBps) } ?? "   --"
-                let down = store.network.map { Self.rate($0.downloadBps) } ?? "   --"
+                let up = store.network.map { Self.rate($0.uploadBps) } ?? "--"
+                let down = store.network.map { Self.rate($0.downloadBps) } ?? "--"
                 blocks.append([("↑", up), ("↓", down)])
             } else {
                 blocks.append([(metric.gridLabel, cellValue(for: metric))])
@@ -198,10 +198,10 @@ final class StatusItemController: NSObject {
     static func rate(_ bps: Double) -> String {
         let value = max(bps, 0)
         switch value {
-        case ..<1000: return String(format: "%3.0fB", value)
-        case ..<999_500: return String(format: "%3.0fK", value / 1000)
-        case ..<999_500_000: return String(format: "%3.1fM", value / 1_000_000)
-        default: return String(format: "%3.1fG", value / 1_000_000_000)
+        case ..<1000: return String(format: "%.0fB", value)
+        case ..<999_500: return String(format: "%.0fK", value / 1000)
+        case ..<999_500_000: return String(format: "%.1fM", value / 1_000_000)
+        default: return String(format: "%.1fG", value / 1_000_000_000)
         }
     }
 
@@ -209,9 +209,9 @@ final class StatusItemController: NSObject {
     static func bytes(_ bytes: UInt64) -> String {
         let value = Double(bytes)
         switch value {
-        case ..<999_500_000: return String(format: "%4.0fM", value / 1_000_000)
-        case ..<999_500_000_000: return String(format: "%4.0fG", value / 1_000_000_000)
-        default: return String(format: "%4.2fT", value / 1_000_000_000_000)
+        case ..<999_500_000: return String(format: "%.0fM", value / 1_000_000)
+        case ..<999_500_000_000: return String(format: "%.0fG", value / 1_000_000_000)
+        default: return String(format: "%.2fT", value / 1_000_000_000_000)
         }
     }
 
@@ -219,11 +219,13 @@ final class StatusItemController: NSObject {
     /// Alineación real por tab stops: label pegado al borde izquierdo de su
     /// columna, valor pegado al derecho — columnas cuadradas a ambas esquinas.
     static func grid(columns: [[(String, String)?]], rows: Int) -> (title: NSAttributedString, width: CGFloat) {
+        let lineHeight: CGFloat = rows >= 4 ? 5.2 : (rows == 3 ? 6.6 : 9)
+        let labelSize: CGFloat = rows >= 4 ? 4.5 : (rows == 3 ? 5 : 6.5)
+        let valueSize: CGFloat = rows >= 4 ? 5.5 : (rows == 3 ? 6.5 : 8.5)
+        let labelFont = NSFont.monospacedSystemFont(ofSize: labelSize, weight: .semibold)
+        let valueFont = NSFont.monospacedSystemFont(ofSize: valueSize, weight: .medium)
+        let baseline: CGFloat = rows >= 4 ? -1.5 : (rows == 3 ? -2 : -3)
         let compact = rows >= 3
-        let lineHeight: CGFloat = compact ? 6.6 : 9
-        let labelFont = NSFont.monospacedSystemFont(ofSize: compact ? 5 : 6.5, weight: .semibold)
-        let valueFont = NSFont.monospacedSystemFont(ofSize: compact ? 6.5 : 8.5, weight: .medium)
-        let baseline: CGFloat = compact ? -2 : -3
 
         let labelAttributes: [NSAttributedString.Key: Any] = [.font: labelFont]
         let valueAttributes: [NSAttributedString.Key: Any] = [.font: valueFont]

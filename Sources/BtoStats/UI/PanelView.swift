@@ -137,13 +137,37 @@ struct PanelView: View {
                         + String(format: " · %.0f%%", fraction)
                 }
                 topList("Top Red", model.topNetwork) { StatusItemController.rate($0.value) + "/s" }
+                topGPUList
             }
-            if let gpuProcess = model.lastGPUProcess {
-                Text("GPU en uso por: \(gpuProcess) — macOS no expone %GPU por proceso sin permisos de administrador; este es el último proceso que envió trabajo a la GPU.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            Text("Top GPU: aproximado por muestreo (% del tiempo en que cada proceso fue el último en enviar trabajo a la GPU). El % exacto por proceso requiere el helper de administrador (fase futura).")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var topGPUList: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Top GPU — % tiempo (aprox.)").font(.caption).bold().foregroundStyle(.secondary)
+            if model.topGPU.isEmpty {
+                Text("midiendo…").font(.caption).foregroundStyle(.tertiary)
+            }
+            ForEach(model.topGPU, id: \.name) { entry in
+                HStack {
+                    Text(entry.name)
+                        .font(.system(size: 11))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 8)
+                    Text(String(format: "%.0f%%", entry.percent))
+                        .font(.system(size: 11, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private func topList(_ title: String,

@@ -47,7 +47,8 @@ struct SettingsView: View {
 
             Picker("Filas de la cuadrícula", selection: $rows) {
                 Text("2 (normal)").tag(2)
-                Text("3 (letra más pequeña)").tag(3)
+                Text("3 (pequeña)").tag(3)
+                Text("4 (mini)").tag(4)
             }
             .pickerStyle(.segmented)
             .onChange(of: rows) { _, newValue in

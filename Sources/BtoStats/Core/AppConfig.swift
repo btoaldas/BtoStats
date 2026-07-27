@@ -87,13 +87,13 @@ final class AppConfig {
         set { defaults.set(min(max(newValue, 1.0), 5.0), forKey: Key.fastInterval) }
     }
 
-    /// Filas de la cuadrícula (2 por defecto; 3 con letra más pequeña).
+    /// Filas de la cuadrícula (2 por defecto; 3 y 4 con letra más pequeña).
     var gridRows: Int {
         get {
             let value = defaults.integer(forKey: Key.gridRows)
-            return value == 0 ? 2 : min(max(value, 2), 3)
+            return value == 0 ? 2 : min(max(value, 2), 4)
         }
-        set { defaults.set(min(max(newValue, 2), 3), forKey: Key.gridRows) }
+        set { defaults.set(min(max(newValue, 2), 4), forKey: Key.gridRows) }
     }
 
     func setEnabled(_ metric: MetricID, _ enabled: Bool) {

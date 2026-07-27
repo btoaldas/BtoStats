@@ -41,6 +41,9 @@ nativa, sencilla y visualmente cuidada, con estadísticas del sistema en tiempo 
 - **Matar procesos** desde los tops (con confirmación; primero terminación suave,
   luego forzada).
 - Liberar CPU/GPU = identificar y terminar el proceso glotón.
+- Top GPU sin privilegios = aproximado por muestreo del último proceso que envía
+  trabajo a la GPU; el % exacto por proceso llega con el helper de administrador
+  (fase 8, opcional).
 
 ## R4 — Tiempo real
 

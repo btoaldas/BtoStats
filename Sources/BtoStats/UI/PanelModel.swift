@@ -25,6 +25,8 @@ final class PanelModel: ObservableObject {
     @Published var downloadHistory: [Double] = []  // B/s
 
     @Published var lastGPUProcess: String?
+    /// (proceso, % de muestras de la ventana de 5 min en que fue el último en usar la GPU)
+    @Published var topGPU: [(name: String, percent: Double)] = []
     @Published var totalCPUPercent: Double = 0   // suma pcpu (100 = 1 core)
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
@@ -56,6 +58,16 @@ final class PanelModel: ObservableObject {
         if let disk = store.disk {
             diskAvailable = disk.availableBytes
             diskTotal = disk.totalBytes
+        }
+        let submitters = store.gpuSubmitterHistory.elements
+        if !submitters.isEmpty {
+            var counts: [String: Int] = [:]
+            for name in submitters { counts[name, default: 0] += 1 }
+            topGPU = counts
+                .map { (name: $0.key, percent: Double($0.value) / Double(submitters.count) * 100) }
+                .sorted { $0.percent > $1.percent }
+                .prefix(8)
+                .map { $0 }
         }
         cpuHistory = store.cpuHistory.elements
         gpuHistory = store.gpuHistory.elements
