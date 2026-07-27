@@ -86,6 +86,20 @@ if runningCopies.count > 1 {
     exit(0)
 }
 
+if CommandLine.arguments.contains("--diskio") {
+    let r = DiskIOReader()
+    _ = r.read() // baseline
+    // generar escritura
+    let data = Data(repeating: 0, count: 50_000_000)
+    try? data.write(to: URL(fileURLWithPath: "/tmp/btostats-iotest"))
+    Thread.sleep(forTimeInterval: 2)
+    if let s = r.read() {
+        print(String(format: "lectura: %.1f MB/s  escritura: %.1f MB/s", s.readBps/1e6, s.writeBps/1e6))
+    } else { print("sin datos") }
+    try? FileManager.default.removeItem(atPath: "/tmp/btostats-iotest")
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--battery") {
     if let b = BatteryReader().read() {
         print("carga: \(b.percentage)%  cargando: \(b.isCharging)  restante: \(b.timeRemainingMinutes.map(String.init) ?? "?") min")

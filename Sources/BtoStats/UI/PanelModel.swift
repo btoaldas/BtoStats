@@ -57,6 +57,8 @@ final class PanelModel: ObservableObject {
     @Published var batteryHealth: Int = 0
     @Published var batteryWatts: Double = 0
     @Published var batteryTemp: Double? = nil
+    @Published var diskReadBps: Double = 0
+    @Published var diskWriteBps: Double = 0
 
     @Published var topCPU: [ProcessReader.ProcessSample] = []
     @Published var topRAM: [ProcessReader.ProcessSample] = []
@@ -91,6 +93,10 @@ final class PanelModel: ObservableObject {
         if let disk = store.disk {
             diskAvailable = disk.availableBytes
             diskTotal = disk.totalBytes
+        }
+        if let io = store.diskIO {
+            diskReadBps = io.readBps
+            diskWriteBps = io.writeBps
         }
         if let bat = store.battery {
             batteryActive = true

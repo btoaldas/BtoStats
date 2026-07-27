@@ -39,6 +39,10 @@ struct AdvancedPanelView: View {
                         }
                     }
                 }
+                section("Disco I/O (en vivo)") {
+                    row("Lectura", StatusItemController.rate(model.diskReadBps) + "/s")
+                    row("Escritura", StatusItemController.rate(model.diskWriteBps) + "/s")
+                }
                 section("Memoria (detalle)") {
                     row("Comprimida", String(format: "%.1f GB", model.compressedGB))
                     row("Swap", model.swapTotalGB > 0

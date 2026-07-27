@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let systemReader = SystemReader()
     private let wifiReader = WiFiReader()
     private let batteryReader = BatteryReader()
+    private let diskIOReader = DiskIOReader()
     private var lastSystem: SystemReader.Snapshot?
     private var lastWiFi: WiFiReader.Snapshot?
     private var lastBattery: BatteryReader.Snapshot?
@@ -62,6 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let cpu = self.cpuReader.read()
                 let memory = self.memoryReader.read()
                 let network = self.networkReader.read()
+                let diskIO = self.diskIOReader.read()
                 // GPU (copia del IORegistry) y sensores (~60 lecturas SMC) son
                 // los readers caros: se leen cada 2 ticks. Temp/GPU no cambian
                 // de forma perceptible en 1 s; baja el consumo base a la mitad.
@@ -82,6 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.store.updateSystem(system)
                     self.store.updateWiFi(self.lastWiFi)
                     self.store.updateBattery(self.lastBattery)
+                    self.store.updateDiskIO(diskIO)
                     self.statusController?.render()
                     self.statusController?.panelController.refresh(from: self.store)
                     // sync (no solo refresh): permite activar/desactivar/redimensionar
