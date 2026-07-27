@@ -66,6 +66,20 @@ orden. Arrástralo a donde quieras: la posición se recuerda.
 - **Widget de escritorio**: activar y elegir tamaño.
 - **Abrir al iniciar sesión**: disponible cuando la app corre instalada como .app.
 
+## Pestaña "Avanzadas"
+
+Todo lo de esta pestaña viene **apagado**: son extras para quien los quiera,
+sin afectar el rendimiento de la app base.
+
+En **Preferencias → Avanzadas** activas: colores dinámicos, alertas, umbrales
+(CPU y temperatura), mini-gráfica en la barra, histórico persistente y las
+funciones de administrador.
+
+En **el panel → Avanzadas** ves: histórico de día/semana/mes, energía en watts
+(CPU/GPU/Neural Engine), CPU por clúster, datos del sistema (uptime, carga,
+procesos), batería (salud, ciclos), Wi-Fi detallado, disco I/O, Bluetooth y
+detalle de memoria (swap y comprimida).
+
 ## Preguntas frecuentes
 
 **¿Por qué no pide contraseña ni permisos?** Todo se lee con APIs sin
@@ -81,3 +95,11 @@ los verdaderos glotones.
 
 **El ícono no aparece (macOS 26).** Ajustes del Sistema → Barra de menús →
 permitir BtoStats.
+
+**¿Por qué no veo frecuencias en GHz ni salud del SSD?** Se descartaron a
+propósito: las fuentes disponibles no son fiables en Apple Silicon y preferimos
+no mostrar datos que podrían estar mal.
+
+**Las alertas aparecen como ventana, no como notificación.** macOS restringe
+las notificaciones de apps con firma ad hoc; en ese caso BtoStats muestra un
+aviso propio para que no pierdas la alerta.

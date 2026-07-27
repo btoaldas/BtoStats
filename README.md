@@ -32,6 +32,24 @@ kernel y sin "liberadores de RAM" mágicos.
 
 **Menú de detalle** (clic derecho) — resumen textual + Preferencias.
 
+**Extras opcionales** (pestaña *Avanzadas*, todos apagados por defecto para
+mantener la app liviana — 0.4 % de CPU con todo OFF):
+
+- **Colores dinámicos** en la barra (amarillo/rojo) con umbrales configurables.
+- **Alertas** al cruzar el umbral crítico (notificación o aviso propio).
+- **Energía**: watts en vivo de CPU, GPU y Neural Engine (IOReport).
+- **Batería**: carga, tiempo restante, salud, ciclos, potencia y temperatura.
+- **CPU por clúster** (p. ej. Super vs Performance en Apple Silicon).
+- **Wi-Fi detallado**: SSID, banda (2.4/5/6 GHz), canal, señal y enlace —
+  con aviso si estás en la banda lenta.
+- **Disco I/O** en vivo (lectura/escritura) y **Bluetooth** (batería de
+  dispositivos).
+- **Sistema**: uptime, carga 1/5/15 min, nº de procesos, swap y memoria
+  comprimida.
+- **Histórico persistente**: una muestra por minuto en disco → gráficas de
+  día, semana y mes.
+- **Mini-gráfica de CPU** en la barra y **widget XXL** con energía.
+
 ## Técnica (sin sudo, verificado empíricamente)
 
 | Métrica | Fuente |
