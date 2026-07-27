@@ -139,9 +139,18 @@ struct PanelView: View {
                 topList("Top Red", model.topNetwork) { StatusItemController.rate($0.value) + "/s" }
                 topGPUList
             }
-            Text("Top GPU: aproximado por muestreo (% del tiempo en que cada proceso fue el último en enviar trabajo a la GPU). El % exacto por proceso requiere el helper de administrador (fase futura).")
+            Text("Top GPU: aproximado por muestreo (% del tiempo en que cada proceso fue el último en enviar trabajo a la GPU). El % exacto por proceso requiere el helper de administrador (fase 8).")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(model.memoryPressure == .normal ? Color.green
+                          : model.memoryPressure == .warning ? Color.yellow : Color.red)
+                    .frame(width: 8, height: 8)
+                Text(MemoryAdvisor.advice(for: model.memoryPressure))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -179,7 +188,8 @@ struct PanelView: View {
                 Text("midiendo…").font(.caption).foregroundStyle(.tertiary)
             }
             ForEach(samples) { sample in
-                HStack {
+                HStack(spacing: 4) {
+                    killButton(for: sample)
                     Text(sample.name)
                         .font(.system(size: 11))
                         .lineLimit(1)
@@ -195,5 +205,44 @@ struct PanelView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// Cerrar proceso: SIEMPRE con confirmación; forzar es una opción aparte
+    /// del mismo diálogo. Procesos de otro usuario: deshabilitado (helper fase 8).
+    private func killButton(for sample: ProcessReader.ProcessSample) -> some View {
+        let permitted = ProcessKiller.canTerminate(pid: sample.pid)
+        return Button {
+            confirmAndTerminate(sample)
+        } label: {
+            Image(systemName: "xmark.circle")
+                .font(.system(size: 10))
+                .foregroundStyle(permitted ? Color.red.opacity(0.8) : Color.gray.opacity(0.4))
+        }
+        .buttonStyle(.plain)
+        .disabled(!permitted)
+        .help(permitted
+              ? "Cerrar \(sample.name) (con confirmación)"
+              : "Proceso de otro usuario — requiere el helper de administrador (fase 8)")
+    }
+
+    private func confirmAndTerminate(_ sample: ProcessReader.ProcessSample) {
+        let alert = NSAlert()
+        alert.messageText = "¿Cerrar \"\(sample.name)\" (PID \(sample.pid))?"
+        alert.informativeText = "Terminar pide el cierre educado (la app puede preguntar si guardas cambios). Forzar cierre mata el proceso al instante y puede perder datos."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Terminar")
+        alert.addButton(withTitle: "Forzar cierre")
+        alert.addButton(withTitle: "Cancelar")
+        NSApp.activate(ignoringOtherApps: true)
+        let choice = alert.runModal()
+        guard choice != .alertThirdButtonReturn else { return }
+        let outcome = ProcessKiller.terminate(pid: sample.pid,
+                                              force: choice == .alertSecondButtonReturn)
+        if case .failed(let reason) = outcome {
+            let error = NSAlert()
+            error.messageText = "No se pudo cerrar \(sample.name)"
+            error.informativeText = reason
+            error.runModal()
+        }
     }
 }

@@ -47,6 +47,21 @@ if CommandLine.arguments.contains("--sample") {
     exit(0)
 }
 
+// Modo verificación de terminación: BtoStats --kill <pid> [--force]
+if let killIndex = CommandLine.arguments.firstIndex(of: "--kill"),
+   killIndex + 1 < CommandLine.arguments.count,
+   let pid = Int32(CommandLine.arguments[killIndex + 1]) {
+    let force = CommandLine.arguments.contains("--force")
+    let uid = ProcessKiller.ownerUID(of: pid).map(String.init) ?? "?"
+    print("pid \(pid) uid \(uid) permitido=\(ProcessKiller.canTerminate(pid: pid))")
+    switch ProcessKiller.terminate(pid: pid, force: force) {
+    case .requested: print("resultado: señal enviada (force=\(force))")
+    case .notPermitted: print("resultado: NO permitido (otro usuario)")
+    case .failed(let reason): print("resultado: fallo — \(reason)")
+    }
+    exit(0)
+}
+
 // Modo verificación de top procesos: BtoStats --top
 if CommandLine.arguments.contains("--top") {
     let reader = ProcessReader()

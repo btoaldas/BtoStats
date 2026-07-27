@@ -24,6 +24,7 @@ final class PanelModel: ObservableObject {
     @Published var uploadHistory: [Double] = []    // B/s
     @Published var downloadHistory: [Double] = []  // B/s
 
+    @Published var memoryPressure: MemoryAdvisor.Pressure = .normal
     @Published var lastGPUProcess: String?
     /// (proceso, % de muestras de la ventana de 5 min en que fue el último en usar la GPU)
     @Published var topGPU: [(name: String, percent: Double)] = []
@@ -41,6 +42,9 @@ final class PanelModel: ObservableObject {
             memoryUsedGB = memory.usedBytes / 1e9
             memoryTotalGB = memory.totalBytes / 1e9
             memoryFraction = memory.fractionUsed
+        }
+        if let pressure = MemoryAdvisor.currentPressure() {
+            memoryPressure = pressure
         }
         if let gpu = store.gpu {
             gpuUsage = gpu.utilization

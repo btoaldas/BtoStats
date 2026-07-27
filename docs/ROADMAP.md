@@ -46,12 +46,14 @@ reproducible antes de darse por cerrada.
       descartan; hijos propios excluidos por ppid).
 - [x] Modo `--top` para verificación por terminal.
 
-## Fase 5 — Acciones
+## Fase 5 — Acciones ✅
 
-- [ ] Matar procesos con confirmación (terminate → forceTerminate / TERM → KILL);
-      otros uid deshabilitado con tooltip.
-- [ ] "Salud de RAM" honesta: presión real + top consumidores (purge es teatro — ver
-      VIABILIDAD §4); botón experimental OFF por defecto.
+- [x] Matar procesos desde los tops: botón ✕ con confirmación (Terminar educado /
+      Forzar cierre / Cancelar); GUI vía NSRunningApplication, resto TERM→KILL.
+      Procesos de otro usuario: deshabilitado con explicación (helper fase 8).
+      Verificado end-to-end por CLI (--kill): propio muere, root bloqueado.
+- [x] Salud de RAM honesta: presión real del kernel (verde/amarillo/rojo) con
+      consejo claro; sin "liberadores" mágicos (purge es teatro — VIABILIDAD §4).
 
 ## Fase 6 — Pulido / empaquetado
 
