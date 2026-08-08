@@ -29,7 +29,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let history = HistoryStore()
     private var uptimeAtLaunch = ProcessInfo.processInfo.systemUptime
 
+    /// Ícono propio en Dock y Cmd-Tab: el ejecutable suelto no tiene Info.plist,
+    /// así que macOS muestra el genérico "exec". Se asigna en runtime desde el
+    /// bundle de recursos SPM (viaja junto al binario — install.sh lo copia).
+    /// Reaplicar tras cada cambio de activation policy: accessory→regular
+    /// re-registra el proceso en el Dock y puede volver al ícono genérico.
+    private func applyDockIcon() {
+        if let iconURL = Bundle.module.url(forResource: "BtoStats", withExtension: "icns"),
+           let icon = NSImage(contentsOf: iconURL) {
+            NSApp.applicationIconImage = icon
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        applyDockIcon()
         statusController = StatusItemController(store: store)
         NotificationCenter.default.addObserver(forName: AppConfig.changedNotification,
                                                object: nil,
@@ -38,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.statusController?.render()
             // ícono del Dock en vivo (sin reiniciar la app)
             NSApp.setActivationPolicy(AppConfig.shared.showInDock ? .regular : .accessory)
+            self?.applyDockIcon()
         }
         startSampling()
         alertMonitor.requestAuthorizationIfNeeded()

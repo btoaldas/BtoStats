@@ -17,6 +17,7 @@ let package = Package(
             name: "BtoStats",
             dependencies: ["BtoStatsHelperShared", "CIOReport"],
             path: "Sources/BtoStats",
+            resources: [.copy("Resources/BtoStats.icns")],
             linkerSettings: [.linkedFramework("CoreWLAN"),
                              .linkedFramework("IOKit"),
                              .unsafeFlags(["-lIOReport"])]

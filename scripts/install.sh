@@ -18,6 +18,9 @@ pkill -x BtoStats 2>/dev/null || true
 sleep 1
 cp .build/release/BtoStats "$DEST/BtoStats"
 chmod +x "$DEST/BtoStats"
+# Bundle de recursos SPM (ícono): Bundle.module lo busca junto al ejecutable.
+rm -rf "$DEST/BtoStats_BtoStats.bundle"
+cp -R .build/release/BtoStats_BtoStats.bundle "$DEST/"
 
 cat > "$AGENT" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
