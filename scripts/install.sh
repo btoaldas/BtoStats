@@ -27,7 +27,9 @@ cat > "$AGENT" <<PLIST
     <key>Label</key><string>ec.bto.btostats</string>
     <key>ProgramArguments</key><array><string>$DEST/BtoStats</string></array>
     <key>RunAtLoad</key><true/>
-    <key>KeepAlive</key><true/>
+    <!-- Relanzar solo tras crash (exit != 0); "Salir" del menú (exit 0) sí termina. -->
+    <key>KeepAlive</key>
+    <dict><key>SuccessfulExit</key><false/></dict>
     <key>ProcessType</key><string>Interactive</string>
 </dict>
 </plist>
