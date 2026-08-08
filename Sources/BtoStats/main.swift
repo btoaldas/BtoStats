@@ -78,15 +78,6 @@ if CommandLine.arguments.contains("--top") {
     exit(0)
 }
 
-// Instancia única: si ya corre otra copia (dev vs .app instalada, o dos .app),
-// no arrancar una segunda que duplicaría íconos en la barra.
-let runningCopies = NSRunningApplication.runningApplications(
-    withBundleIdentifier: "ec.bto.BtoStats")
-if runningCopies.count > 1 {
-    FileHandle.standardError.write("BtoStats ya está corriendo — saliendo.\n".data(using: .utf8)!)
-    exit(0)
-}
-
 if CommandLine.arguments.contains("--guard-test") {
     func fake(_ pct: Int, charging: Bool) -> BatteryReader.Snapshot {
         BatteryReader.Snapshot(percentage: pct, isCharging: charging, timeRemainingMinutes: nil,
@@ -287,6 +278,27 @@ if CommandLine.arguments.contains("--system") {
     print(String(format: "comprimida: %.2f GB", Double(sys.compressedBytes)/1e9))
     exit(0)
 }
+
+// Instancia única (solo modo UI, para no duplicar íconos en la barra): flock
+// exclusivo sobre un archivo en Application Support. NSRunningApplication por
+// bundle id no sirve: el binario instalado es un ejecutable suelto sin
+// Info.plist y LaunchServices no lo registra (devolvía siempre 0 copias).
+// El mismo archivo cubre dev vs instalada, y el kernel libera el lock al morir
+// el proceso — incluso con kill -9, así el relanzamiento de launchd no se bloquea.
+let instanceLockDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    .appendingPathComponent("BtoStats", isDirectory: true)
+try? FileManager.default.createDirectory(at: instanceLockDir, withIntermediateDirectories: true)
+let instanceLockFD = open(instanceLockDir.appendingPathComponent("instance.lock").path, O_CREAT | O_RDWR, 0o644)
+if instanceLockFD != -1 {
+    if flock(instanceLockFD, LOCK_EX | LOCK_NB) != 0 {
+        FileHandle.standardError.write("BtoStats ya está corriendo — saliendo.\n".data(using: .utf8)!)
+        exit(0)
+    }
+    // pid informativo para diagnóstico; el fd queda abierto toda la vida del proceso
+    ftruncate(instanceLockFD, 0)
+    _ = "\(getpid())\n".withCString { write(instanceLockFD, $0, strlen($0)) }
+}
+// Si open falla (disco/permisos) se arranca sin lock: preferible a no arrancar.
 
 let app = NSApplication.shared
 let delegate = AppDelegate()
